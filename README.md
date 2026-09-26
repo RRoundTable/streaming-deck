@@ -16,4 +16,6 @@ bin/sd shutdown         # state.json off → 데일리 노트 열기 → iTerm2 
 
 단축어 4개(`SD Start Day` ⌃⌥1, `SD Deep 50` ⌃⌥2, `SD Shutdown` ⌃⌥0, `SD Notify`)를 만든다. 만드는 법, 권한, 문제 해결은 [docs/reference/setup.md](docs/reference/setup.md).
 
+메뉴 막대 표시는 SwiftBar 플러그인 `swiftbar/sd.30s.sh` ([setup.md 4장](docs/reference/setup.md)).
+
 터미널에서 확인: `shortcuts run "SD Deep 50"`
