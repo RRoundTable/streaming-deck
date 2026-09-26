@@ -106,14 +106,28 @@ echo "알림 테스트" > /tmp/n.txt && shortcuts run "SD Notify" -i /tmp/n.txt
 
 처음 실행하면 "계속하겠습니까" 알림이 뜨고 명령이 멈춘다. 옵션 → **항상 허용**을 누른다.
 
-## 4. 첫 실행 권한
+## 4. 메뉴 막대 표시 (SwiftBar)
+
+딥 블록 동안 메뉴 막대에 `🎯 32m · 작업명`을 띄우고, 50분이 지나면 `⏰ 블록 종료 — 집중도 기록`을 띄운다. 블록이 없으면 아무것도 표시하지 않는다. 결정 기록: `git log adr/001-swiftbar-menu-bar`.
+
+```bash
+brew install --cask swiftbar
+defaults write com.ameba.SwiftBar PluginDirectory ~/workspace/personal/streaming-deck/swiftbar
+open -a SwiftBar
+```
+
+- 플러그인 `swiftbar/sd.30s.sh`는 30초마다 `~/.focus/state.json`을 읽기만 한다.
+- 로그인 시 자동 실행: SwiftBar 메뉴 → Preferences → Launch at login.
+- 블록 표시를 더 강하게 하려면 전용 집중 모드 "딥워크"를 만들고, 집중 모드 필터 → 외관 설정 → 다크 모드를 켠다. `SD Deep 50`·`SD Shutdown`의 집중 모드를 `딥워크`로 바꾼다.
+
+## 5. 첫 실행 권한
 
 | 요청 | 언제 | 선택 |
 |---|---|---|
 | 단축어가 System Events 제어 | 앱 숨기기·입력창 처음 사용 | 허용 |
 | "계속하겠습니까" (알림 형태) | `shortcuts run`으로 단축어 첫 호출 | 옵션 → 항상 허용 |
 
-## 5. 문제 해결 (오늘 겪은 것)
+## 6. 문제 해결 (오늘 겪은 것)
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
@@ -126,11 +140,12 @@ echo "알림 테스트" > /tmp/n.txt && shortcuts run "SD Notify" -i /tmp/n.txt
 | 완료 조건 한글이 `ㄴㅗㅌㅡ`처럼 저장됨 | osascript 입력창에서 한글 IME 조합 실패 (간헐적) | 반복되면 입력창을 단축어의 "입력 요청" 액션으로 교체 검토 |
 | 블록 중 카톡·Discord가 다시 켜짐 | 숨김은 ⌘Tab으로 되돌릴 수 있음 | `BLOCKED_APPS`가 블록 동안 5초마다 종료 (`bin/sd`) |
 
-## 6. 동작 확인 체크리스트
+## 7. 동작 확인 체크리스트
 
 - [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림
 - [ ] ⌃⌥2 → 입력창 → "Deep 50 시작 ~HH:MM" 알림, 달 아이콘, 노트에 `start deep` 줄
 - [ ] ⌃⌥2 → 입력창 취소 → 방해금지 안 켜짐
 - [ ] 블록 중 Discord 실행 → 5초 내 종료, "딥 블록 중" 알림, `distraction` 줄
-- [ ] 50분 후 "블록 종료" 알림, 달 아이콘 꺼짐
+- [ ] 블록 중 메뉴 막대에 `🎯 Nm · 작업명`
+- [ ] 50분 후 "블록 종료" 알림, 메뉴 막대 `⏰ 블록 종료`, 달 아이콘 꺼짐
 - [ ] ⌃⌥0 → 방해금지 해제, 노트 열림, iTerm2 종료, 알림
