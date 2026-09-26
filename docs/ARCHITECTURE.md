@@ -14,6 +14,7 @@ flowchart TD
     B --> F[~/.focus/state.json]
     S --> M[macOS 집중 모드]
     B --> N[앱 숨기기·종료 알림]
+    F --> W[SwiftBar 메뉴 막대<br/>swiftbar/sd.30s.sh]
     F -.later.-> G[Focus Guard 데몬]
 ```
 
@@ -26,6 +27,7 @@ flowchart TD
 | 기록 | Obsidian 기록 볼트 (`~/workspace/personal/record-vault`), 코어 Daily Notes·Templates. 플러그인 없음 | — |
 | 상태 | `~/.focus/state.json` | — |
 | 스크립트 | `bin/sd` (zsh, 단축어 "셸 스크립트 실행"에서 호출) | — |
+| 표시 | SwiftBar + `swiftbar/sd.30s.sh` (state.json 읽기 전용) | adr/001-swiftbar-menu-bar |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
 
@@ -34,6 +36,7 @@ flowchart TD
 ```
 streaming-deck/
 ├── bin/sd           # 모든 동작의 진입점 (start-day, deep, shutdown)
+├── swiftbar/        # SwiftBar 플러그인 폴더 (메뉴 막대 표시)
 ├── docs/            # GOAL, ROADMAP, SPEC, ARCHITECTURE, reference/design.md
 └── README.md
 ```
@@ -43,7 +46,7 @@ streaming-deck/
 ## Import Rules
 
 - 각 단축어는 다른 `SD` 단축어에 의존하지 않는다. 공통 동작(로그 한 줄 추가)이 생기면 스크립트 하나로 뽑는다.
-- Focus Guard는 `state.json`만 읽고, 단축어는 `state.json`만 쓴다. 둘 사이의 계약은 이 파일 하나다.
+- `state.json`은 `bin/sd`만 쓰고, SwiftBar 플러그인과 Focus Guard는 읽기만 한다. 이 파일이 유일한 계약이다.
 
 ## Key Patterns
 
