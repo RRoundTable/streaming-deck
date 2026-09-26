@@ -12,6 +12,14 @@ bin/sd shutdown         # state.json off → 데일리 노트 열기 → iTerm2 
 
 기록 볼트: `~/workspace/personal/record-vault` (`SD_VAULT`로 변경 가능)
 
+## 새 Mac에 설치
+
+```bash
+git clone git@github.com:RRoundTable/streaming-deck.git && cd streaming-deck && bin/setup
+```
+
+Claude Code에서는 이 저장소를 열고 "streaming-deck 설치해줘"라고 하면 `setup-streaming-deck` skill이 앱 설치, 단축어, 권한, 동작 확인까지 안내한다.
+
 ## 단축어 설정
 
 단축어 4개(`SD Start Day` ⌃⌥1, `SD Deep 50` ⌃⌥2, `SD Shutdown` ⌃⌥0, `SD Notify`)를 만든다. 만드는 법, 권한, 문제 해결은 [docs/reference/setup.md](docs/reference/setup.md).

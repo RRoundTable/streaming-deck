@@ -1,0 +1,49 @@
+#!/bin/zsh
+# 이 Mac에 sd 시스템을 설치한다. 여러 번 실행해도 안전하다(기존 파일은 덮어쓰지 않음).
+#   bin/setup            볼트·상태 폴더·SwiftBar 플러그인 폴더 설정 후, 남은 수동 단계 출력
+# SwiftBar 설치(brew)와 단축어 생성은 하지 않는다. 필요한 것만 알려준다.
+set -euo pipefail
+
+REPO=${0:A:h:h}
+VAULT=${SD_VAULT:-$HOME/workspace/personal/record-vault}
+
+[[ $(uname) == Darwin ]] || { print -u2 "setup: macOS 전용"; exit 1; }
+
+chmod +x $REPO/bin/sd $REPO/swiftbar/*.sh
+
+# 기록 볼트: 없는 파일만 복사
+mkdir -p $VAULT/{Daily,Weekly}
+rsync -a --ignore-existing $REPO/vault-template/ $VAULT/
+print "✓ 기록 볼트: $VAULT"
+
+mkdir -p $HOME/.focus
+[[ -f $HOME/.focus/state.json ]] || print '{"mode": "off"}' > $HOME/.focus/state.json
+print "✓ 상태 파일: ~/.focus/state.json"
+
+if [[ -d /Applications/SwiftBar.app ]]; then
+  defaults write com.ameba.SwiftBar PluginDirectory $REPO/swiftbar
+  print "✓ SwiftBar 플러그인 폴더: $REPO/swiftbar"
+else
+  print "✗ SwiftBar 없음: brew install --cask swiftbar 후 bin/setup 재실행"
+fi
+
+missing=()
+for name in "SD Start Day" "SD Deep 50" "SD Shutdown" "SD Notify"; do
+  shortcuts list | grep -qxF $name || missing+=$name
+done
+if (( ${#missing} )); then
+  print "✗ 단축어 없음: ${(j:, :)missing}"
+else
+  print "✓ 단축어 4개"
+fi
+
+vault_arg=""
+[[ $VAULT == $HOME/workspace/personal/record-vault ]] || vault_arg="SD_VAULT=$VAULT "
+cat <<EOF
+
+단축어의 "셸 스크립트 실행"에 넣을 명령 (셸 zsh):
+  SD Start Day  ⌃⌥1  ${vault_arg}$REPO/bin/sd start-day
+  SD Deep 50    ⌃⌥2  ${vault_arg}$REPO/bin/sd deep
+  SD Shutdown   ⌃⌥0  ${vault_arg}$REPO/bin/sd shutdown
+만드는 법: $REPO/docs/reference/setup.md 3장
+EOF

@@ -35,8 +35,11 @@ flowchart TD
 
 ```
 streaming-deck/
+├── .claude/skills/setup-streaming-deck/  # 새 Mac 설치 절차 (Claude Code skill)
 ├── bin/sd           # 모든 동작의 진입점 (start-day, deep, shutdown)
+├── bin/setup        # 설치: 볼트·상태 폴더·SwiftBar 설정 (멱등, 덮어쓰기 없음)
 ├── swiftbar/        # SwiftBar 플러그인 폴더 (메뉴 막대 표시)
+├── vault-template/  # 기록 볼트 뼈대 (템플릿, Inbox, Goals, .obsidian 설정)
 ├── docs/            # GOAL, ROADMAP, SPEC, ARCHITECTURE, reference/design.md
 └── README.md
 ```
