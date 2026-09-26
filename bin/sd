@@ -135,13 +135,14 @@ cmd__guard() {
       notify "딥 블록 중: $app 종료함 (~$(date -r $ends +%H:%M))"
     done
   done
-  block_active $started && notify "블록 종료 — 집중도 1~5를 기록하고 화면 밖에서 쉬세요"
-  return 0
+  block_active $started || return 0
+  append_log "- $(date +%H:%M) end deep"
+  notify "블록 종료 — 집중도 1~5를 기록하고 화면 밖에서 쉬세요"
 }
 
 cmd_shutdown() {
   write_state off
-  ensure_note
+  append_log "- $(date +%H:%M) shutdown"
   open_note
   pgrep -xq iTerm2 && osascript -e 'quit app "iTerm2"'
   print "Shutdown 완료 — 회고와 내일 첫 작업을 적으세요"
