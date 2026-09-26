@@ -18,10 +18,14 @@ BLOCKED_APPS=(Discord KakaoTalk)    # 블록 동안 실행 즉시 종료
 
 die() { print -u2 "sd: $*"; exit 1; }
 
-notify() {  # notify <제목> <본문>
-  osascript -e 'on run argv' \
-    -e 'display notification (item 2 of argv) with title (item 1 of argv) sound name "Glass"' \
-    -e 'end run' "$1" "$2"
+# 백그라운드(_guard) 알림. 단축어 "SD Notify"(알림 표시: 단축어 입력)가 띄운다.
+# 포그라운드 명령은 결과를 stdout에 찍고, 각 SD 단축어의 마지막 "알림 표시"가 띄운다.
+notify() {  # notify <메시지>
+  local f=${TMPDIR:-/tmp}/sd-notify-$$.txt rc=0
+  print -r -- "$1" > $f
+  shortcuts run "SD Notify" -i $f >/dev/null 2>&1 || rc=$?
+  rm -f $f
+  (( rc == 0 )) || osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "sd"' -e 'end run' "$1"
 }
 
 ensure_note() {
@@ -97,6 +101,7 @@ cmd_start_day() {
   open "https://calendar.google.com/calendar/r/day"
   open "https://tasks.google.com"
   open_note
+  print "데일리 노트·Calendar·Tasks를 열었습니다. MIT 1개를 적으세요"
 }
 
 cmd_deep() {
@@ -110,7 +115,8 @@ cmd_deep() {
   write_state deep $task $started $ends
   clear_distractions
   nohup $SELF _guard $(date -v+${minutes}M +%s) $started >/dev/null 2>&1 &!
-  print "deep 블록 시작 ~$(date -v+${minutes}M +%H:%M): $task"
+  local until=$(date -v+${minutes}M +%H:%M)
+  print -r -- "Deep 50 시작 ~$until — $task"
 }
 
 block_active() { grep -qF "\"started\": \"$1\"" $STATE 2>/dev/null }
@@ -126,10 +132,10 @@ cmd__guard() {
       pgrep -xq $app || continue
       quit_app $app
       append_log "- $(date +%H:%M) distraction $app (closed)"
-      notify "딥 블록 중" "$app 종료함 — $(date -r $ends +%H:%M)까지"
+      notify "딥 블록 중: $app 종료함 (~$(date -r $ends +%H:%M))"
     done
   done
-  block_active $started && notify "블록 종료" "집중도 1~5를 기록하고 화면 밖에서 쉬세요"
+  block_active $started && notify "블록 종료 — 집중도 1~5를 기록하고 화면 밖에서 쉬세요"
   return 0
 }
 
@@ -138,7 +144,7 @@ cmd_shutdown() {
   ensure_note
   open_note
   pgrep -xq iTerm2 && osascript -e 'quit app "iTerm2"'
-  return 0
+  print "Shutdown 완료 — 회고와 내일 첫 작업을 적으세요"
 }
 
 case ${1:-} in

@@ -8,7 +8,9 @@
 - [x] Obsidian에 볼트 등록
 - [x] `bin/sd`: 데일리 노트 생성, `## 집중 로그`에 줄 추가, 완료 조건 입력창, state.json, 종료 알림 (Advanced URI 대신 파일 직접 수정)
 - [x] 딥 블록 중 Discord·KakaoTalk 실행 차단 + `distraction` 로그 (Focus Guard 중 앱 차단만 앞당김, 사용자 요청 2026-09-26)
-- [ ] 단축어 `SD Start Day`, `SD Deep 50`, `SD Shutdown` + 키보드 단축키(⌃⌥1, ⌃⌥2, ⌃⌥0)
+- [x] 단축어 `SD Start Day`, `SD Deep 50`, `SD Shutdown` + 키보드 단축키(⌃⌥1, ⌃⌥2, ⌃⌥0)
+- [x] 완료 알림: 각 단축어 마지막 `알림 표시`, 백그라운드 알림은 `SD Notify` 경유
+- [ ] `SD Notify` "항상 허용" 후 블록 종료 알림 실제 확인 ([setup.md 6장](reference/setup.md) 체크리스트)
 
 완료 기준: ⌃⌥1로 오늘 데일리 노트가 열리고, ⌃⌥2 → 50분 후 알림 → 집중 로그에 `start` 줄이 남는다.
 

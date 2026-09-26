@@ -14,14 +14,6 @@ bin/sd shutdown         # state.json off → 데일리 노트 열기 → iTerm2 
 
 ## 단축어 설정
 
-단축어 앱 → 설정 → 고급 → **스크립트 실행 허용**을 켠다. 각 단축어의 ⓘ → **키보드 단축키 추가**.
-
-| 단축어 | 액션 | 키 |
-|---|---|---|
-| `SD Start Day` | 셸 스크립트 실행: `~/workspace/personal/streaming-deck/bin/sd start-day` | ⌃⌥1 |
-| `SD Deep 50` | 셸 스크립트 실행: `~/workspace/personal/streaming-deck/bin/sd deep` → 날짜 조정(현재 날짜 + 50분) → 집중 모드 설정: 방해금지 켜기, 끝: 시간(조정된 날짜) | ⌃⌥2 |
-| `SD Shutdown` | 셸 스크립트 실행: `~/workspace/personal/streaming-deck/bin/sd shutdown` → 집중 모드 설정: 방해금지 끄기 | ⌃⌥0 |
-
-셸 스크립트 실행의 셸은 `zsh`, 입력 전달은 사용 안 함. 처음 실행하면 System Events 제어(앱 숨기기) 권한을 묻는다.
+단축어 4개(`SD Start Day` ⌃⌥1, `SD Deep 50` ⌃⌥2, `SD Shutdown` ⌃⌥0, `SD Notify`)를 만든다. 만드는 법, 권한, 문제 해결은 [docs/reference/setup.md](docs/reference/setup.md).
 
 터미널에서 확인: `shortcuts run "SD Deep 50"`

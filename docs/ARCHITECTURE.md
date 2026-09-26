@@ -48,6 +48,7 @@ streaming-deck/
 ## Key Patterns
 
 - **로그는 파일에 직접 쓴다** (2026-09-26, Advanced URI 대신): `bin/sd`가 `Daily/YYYY-MM-DD.md`의 `## 집중 로그` 섹션 끝에 한 줄을 넣는다. 노트가 없으면 `Templates/Daily.md`로 만든다. 플러그인 의존이 없고, Obsidian이 꺼져 있어도 기록되며, Focus Guard가 같은 경로를 쓸 수 있다. 대가: 노트를 열 때 특정 줄에 커서를 둘 수 없다.
+- **알림은 단축어가 띄운다.** 포그라운드 명령은 결과를 stdout에 찍고 각 단축어 마지막 `알림 표시`가 띄운다. 백그라운드 `_guard`는 `shortcuts run "SD Notify"`를 부른다(실패 시 osascript). osascript 알림은 스크립트 편집기 알림으로 취급돼 꺼져 있을 수 있기 때문. 상세: [reference/setup.md](reference/setup.md).
 - **집중 모드 on/off는 단축어의 "집중 모드 설정" 액션이 맡는다.** CLI로 제어할 방법이 없기 때문. 단축어는 `bin/sd`가 실패(예: 완료 조건 취소)하면 멈추므로 집중 모드가 켜지지 않는다.
 
 ## Constraints
