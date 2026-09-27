@@ -2,21 +2,17 @@
 
 ## System Overview
 
-트리거(키보드 단축키, 나중에 Stream Deck Hotkey)는 단축어를 부르기만 한다. 로직은 `bin/sd`에 있고, 단축어는 `bin/sd` 호출과 집중 모드 설정만 한다.
+macOS 앱 계층은 Hammerspoon 하나다(adr/004). 단축키·메뉴 막대·HUD·알림을 맡고, 로직은 전부 `bin/sd`에 있다. 단축어는 집중 모드 on/off 두 개뿐이고 `bin/sd`가 부른다.
 
 ```mermaid
 flowchart TD
-    K[키보드 단축키 ⌃⌥N] --> S[macOS 단축어 SD *]
-    SD[Stream Deck Hotkey<br/>기기 도착 후] --> K
-    CLI[shortcuts run 'SD *'] --> S
-    S --> B[bin/sd]
-    B --> O[Obsidian 기록 볼트<br/>파일 직접 수정 + obsidian://open]
+    K[⌃⌥1/2/0<br/>나중에 Stream Deck Hotkey] --> HS[Hammerspoon<br/>hammerspoon/sd.lua]
+    HS -->|start-day, deep, shutdown| B[bin/sd]
+    B --> O[Obsidian 기록 볼트<br/>Daily/ 생성, Logs/ append]
     B --> F[~/.focus/state.json]
-    S --> M[macOS 집중 모드]
-    B --> N[앱 숨기기·종료 알림]
-    F --> ST[bin/sd status<br/>상태 한 줄]
-    ST --> W[SwiftBar 메뉴 막대<br/>짧게]
-    ST --> H[Hammerspoon HUD<br/>전체 문구]
+    B -->|shortcuts run| FM[단축어 SD Focus On/Off<br/>방해금지]
+    B -->|~/.focus/notify| HS
+    HS -->|bin/sd status| MB[메뉴 막대 짧게 + HUD 전체 문구]
     F -.later.-> G[Focus Guard 데몬]
 ```
 
@@ -24,12 +20,13 @@ flowchart TD
 
 | Layer | Choice | ADR |
 |-------|--------|-----|
-| 동작 | macOS 단축어 (`SD ` 접두어) | — |
-| 트리거 | 단축어 키보드 단축키 → 나중에 Stream Deck Hotkey | — |
+| 앱 계층 | Hammerspoon (`hammerspoon/sd.lua`): 단축키, 메뉴 막대, HUD, 알림 | adr/004-hammerspoon-single-app |
+| 트리거 | Hammerspoon 단축키 ⌃⌥1/2/0 → 나중에 Stream Deck Hotkey | adr/004-hammerspoon-single-app |
+| 집중 모드 | 단축어 `SD Focus On`/`SD Focus Off` (`bin/sd`가 `shortcuts run`) | adr/004-hammerspoon-single-app |
 | 기록 | Obsidian 기록 볼트 (`~/workspace/personal/record-vault`), 코어 Daily Notes·Templates. 플러그인 없음 | — |
 | 상태 | `~/.focus/state.json` | — |
-| 스크립트 | `bin/sd` (zsh, 단축어 "셸 스크립트 실행"에서 호출) | — |
-| 표시 | `bin/sd status`가 상태 한 줄을 만들고, SwiftBar(메뉴 막대, 짧게)와 Hammerspoon HUD(화면 구석, 전체 문구)가 그대로 보여준다 | adr/001-swiftbar-menu-bar, adr/003-hammerspoon-hud |
+| 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
+| 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
 
@@ -39,9 +36,8 @@ flowchart TD
 streaming-deck/
 ├── .claude/skills/setup-streaming-deck/  # 새 Mac 설치 절차 (Claude Code skill)
 ├── bin/sd           # 모든 동작의 진입점 (start-day, deep, shutdown)
-├── bin/setup        # 설치: 볼트·상태 폴더·SwiftBar 설정 (멱등, 덮어쓰기 없음)
-├── hammerspoon/     # 화면 구석 HUD (sd_hud.lua)
-├── swiftbar/        # SwiftBar 플러그인 폴더 (메뉴 막대 표시)
+├── bin/setup        # 설치: 볼트·상태 폴더·Hammerspoon 설정 (멱등, 덮어쓰기 없음)
+├── hammerspoon/sd.lua  # 앱 계층: 단축키, 메뉴 막대, HUD, 알림
 ├── vault-template/  # 기록 볼트 뼈대 (템플릿, Inbox, Goals, .obsidian 설정)
 ├── docs/            # GOAL, ROADMAP, SPEC, ARCHITECTURE, reference/design.md
 └── README.md
@@ -51,15 +47,14 @@ streaming-deck/
 
 ## Import Rules
 
-- 각 단축어는 다른 `SD` 단축어에 의존하지 않는다. 공통 동작(로그 한 줄 추가)이 생기면 스크립트 하나로 뽑는다.
-- `state.json`은 `bin/sd`만 쓰고 해석한다. 표시 계층(SwiftBar, Hammerspoon)은 `bin/sd status` 출력만 쓰고 파일을 직접 읽지 않는다. Focus Guard는 state.json을 읽기만 한다.
+- `state.json`은 `bin/sd`만 쓰고 해석한다. Hammerspoon은 `bin/sd status` 출력과 `~/.focus/notify`만 쓰고 state.json을 직접 읽지 않는다. Focus Guard는 state.json을 읽기만 한다.
 
 ## Key Patterns
 
 - **로그는 파일에 직접 쓴다** (2026-09-26, Advanced URI 대신): 플러그인 의존이 없고, Obsidian이 꺼져 있어도 기록되며, Focus Guard가 같은 경로를 쓸 수 있다. 대가: 노트를 열 때 특정 줄에 커서를 둘 수 없다.
 - **로그 파일은 데일리 노트와 분리한다** (adr/002-separate-log-file): `bin/sd`는 `Logs/YYYY-MM-DD.md`에 줄을 덧붙이기만 하고, 데일리 노트는 `## 집중 로그` 아래 `![[Logs/YYYY-MM-DD]]`로 임베드해 보여준다. 사람이 편집하는 파일과 스크립트가 쓰는 파일이 달라 Obsidian 편집 중 동시 쓰기 충돌이 생기지 않는다. `bin/sd`는 데일리 노트를 만들 때만 쓰고, 이후에는 MIT를 읽기만 한다.
-- **알림은 단축어가 띄운다.** 포그라운드 명령은 결과를 stdout에 찍고 각 단축어 마지막 `알림 표시`가 띄운다. 백그라운드 `_guard`는 `shortcuts run "SD Notify"`를 부른다(실패 시 osascript). osascript 알림은 스크립트 편집기 알림으로 취급돼 꺼져 있을 수 있기 때문. 상세: [reference/setup.md](reference/setup.md).
-- **집중 모드 on/off는 단축어의 "집중 모드 설정" 액션이 맡는다.** CLI로 제어할 방법이 없기 때문. 단축어는 `bin/sd`가 실패(예: 완료 조건 취소)하면 멈추므로 집중 모드가 켜지지 않는다.
+- **알림은 Hammerspoon이 띄운다.** 단축키로 부른 명령은 stdout(성공)·stderr(실패)를 알림으로 띄운다. 백그라운드 `_guard`는 `~/.focus/notify`에 문구를 쓰고, Hammerspoon이 `~/.focus`를 감시하다 읽어서 띄운 뒤 지운다(Hammerspoon이 꺼져 있으면 osascript).
+- **집중 모드 on/off만 단축어에 남는다.** macOS에 CLI가 없기 때문. `bin/sd`가 완료 조건 검증 후 `SD Focus On`, 블록 종료·Shutdown 때 `SD Focus Off`를 부른다. 블록과 방해금지 시간이 정확히 일치한다.
 
 ## Constraints
 

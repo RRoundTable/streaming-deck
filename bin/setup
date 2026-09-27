@@ -1,7 +1,7 @@
 #!/bin/zsh
 # 이 Mac에 sd 시스템을 설치한다. 여러 번 실행해도 안전하다(기존 파일은 덮어쓰지 않음).
-#   bin/setup            볼트·상태 폴더·SwiftBar 플러그인 폴더 설정 후, 남은 수동 단계 출력
-# SwiftBar·Hammerspoon 설치(brew)와 단축어 생성은 하지 않는다. 필요한 것만 알려준다.
+#   bin/setup            볼트·상태 폴더·Hammerspoon 설정 후, 남은 수동 단계 출력
+# Hammerspoon 설치(brew)와 단축어 생성은 하지 않는다. 필요한 것만 알려준다.
 set -euo pipefail
 
 REPO=${0:A:h:h}
@@ -9,7 +9,7 @@ VAULT=${SD_VAULT:-$HOME/workspace/personal/record-vault}
 
 [[ $(uname) == Darwin ]] || { print -u2 "setup: macOS 전용"; exit 1; }
 
-chmod +x $REPO/bin/sd $REPO/swiftbar/*.sh
+chmod +x $REPO/bin/sd
 
 # 기록 볼트: 없는 파일만 복사
 mkdir -p $VAULT/{Daily,Weekly,Logs}
@@ -20,39 +20,27 @@ mkdir -p $HOME/.focus
 [[ -f $HOME/.focus/state.json ]] || print '{"mode": "off"}' > $HOME/.focus/state.json
 print "✓ 상태 파일: ~/.focus/state.json"
 
-if [[ -d /Applications/SwiftBar.app ]]; then
-  defaults write com.ameba.SwiftBar PluginDirectory $REPO/swiftbar
-  print "✓ SwiftBar 플러그인 폴더: $REPO/swiftbar"
-else
-  print "✗ SwiftBar 없음: brew install --cask swiftbar 후 bin/setup 재실행"
-fi
-
-HS_LINE="dofile(\"$REPO/hammerspoon/sd_hud.lua\").start(\"$REPO\")"
+INIT=$HOME/.hammerspoon/init.lua
 if [[ -d /Applications/Hammerspoon.app ]]; then
-  mkdir -p $HOME/.hammerspoon
-  grep -qF sd_hud.lua $HOME/.hammerspoon/init.lua 2>/dev/null || print -r -- $HS_LINE >> $HOME/.hammerspoon/init.lua
-  print "✓ Hammerspoon HUD: ~/.hammerspoon/init.lua (Hammerspoon → Reload Config)"
+  mkdir -p $INIT:h
+  [[ -f $INIT ]] && sed -i '' '/hammerspoon\/sd_hud\.lua/d' $INIT   # ADR-004 이전 설정 제거
+  grep -qF hammerspoon/sd.lua $INIT 2>/dev/null ||
+    print -r -- "dofile(\"$REPO/hammerspoon/sd.lua\").start(\"$REPO\")" >> $INIT
+  print "✓ Hammerspoon: $INIT (실행 중이면 Hammerspoon 콘솔에서 hs.reload())"
 else
   print "✗ Hammerspoon 없음: brew install --cask hammerspoon 후 bin/setup 재실행"
 fi
+[[ $VAULT == $HOME/workspace/personal/record-vault ]] ||
+  print "! 볼트가 기본 경로가 아님: Hammerspoon이 부르는 sd에는 SD_VAULT가 전달되지 않는다. bin/sd의 VAULT 기본값을 바꾼다."
 
 missing=()
-for name in "SD Start Day" "SD Deep 50" "SD Shutdown" "SD Notify"; do
+for name in "SD Focus On" "SD Focus Off"; do
   shortcuts list | grep -qxF $name || missing+=$name
 done
 if (( ${#missing} )); then
-  print "✗ 단축어 없음: ${(j:, :)missing}"
+  print "✗ 단축어 없음: ${(j:, :)missing} — $REPO/docs/reference/setup.md 3장"
 else
-  print "✓ 단축어 4개"
+  print "✓ 단축어 SD Focus On/Off"
 fi
-
-vault_arg=""
-[[ $VAULT == $HOME/workspace/personal/record-vault ]] || vault_arg="SD_VAULT=$VAULT "
-cat <<EOF
-
-단축어의 "셸 스크립트 실행"에 넣을 명령 (셸 zsh):
-  SD Start Day  ⌃⌥1  ${vault_arg}$REPO/bin/sd start-day
-  SD Deep 50    ⌃⌥2  ${vault_arg}$REPO/bin/sd deep
-  SD Shutdown   ⌃⌥0  ${vault_arg}$REPO/bin/sd shutdown
-만드는 법: $REPO/docs/reference/setup.md 3장
-EOF
+old=$(shortcuts list | grep -xE "SD (Start Day|Deep 50|Shutdown|Notify)" || true)
+[[ -z $old ]] || print "! 예전 단축어가 남아 있음(⌃⌥ 키 충돌): ${(j:, :)${(f)old}} — 단축어 앱에서 삭제"
