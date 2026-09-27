@@ -1,163 +1,106 @@
 # 설정 가이드 (Stream Deck 없이 키보드 단축키로)
 
-2026-09-26 기준. macOS 15, 단축어 앱.
+2026-09-27 기준. macOS 15, Hammerspoon 1.1.
 
-## 1. 구조: 스크립트와 단축어의 역할
+## 1. 구조
 
-기준은 하나다. **단축어만 할 수 있는 일만 단축어에 두고, 나머지는 전부 `bin/sd`에 둔다.**
+앱은 Hammerspoon 하나다(adr/004). 로직은 전부 `bin/sd`에 있고, Hammerspoon은 연결만 한다.
 
-| | 단축어 (`SD *`) | 스크립트 (`bin/sd`) |
+| 계층 | 담당 | 저장 위치 |
 |---|---|---|
-| 역할 | 키 입력 받기, 집중 모드 on/off, 알림 표시 | 실제 동작 전부 |
-| 하는 일 | ⌃⌥ 키 → `sd` 호출 → 방해금지 → 결과 알림 | 데일리 노트 생성, 집중 로그, 완료 조건 입력창, `~/.focus/state.json`, 앱 숨기기·종료, 블록 중 앱 차단, 블록 종료 알림 요청 |
-| 저장 위치 | macOS (git 밖) | 이 저장소 (git 안) |
-
-이렇게 나눈 이유:
-
-- macOS에는 집중 모드를 켜고 끄는 CLI가 없다. 단축어의 "집중 모드 설정" 액션만 할 수 있다.
-- 스크립트는 git으로 관리되고, 터미널에서 바로 테스트할 수 있고, Focus Guard가 같은 코드를 재사용할 수 있다.
-- Stream Deck이 오면 버튼에 같은 키보드 단축키를 Hotkey로 연결하면 끝이다. 다시 만들 것이 없다.
-
-`SD Deep 50`에서 스크립트가 실패하면(완료 조건 취소·빈칸) 단축어가 멈춘다. 그래서 방해금지가 켜지지 않는다.
+| Hammerspoon (`hammerspoon/sd.lua`) | ⌃⌥1/2/0 단축키, 메뉴 막대, 화면 구석 HUD, 알림 | 저장소 (init.lua가 불러옴) |
+| `bin/sd` | 데일리 노트 생성, 집중 로그, 완료 조건 입력창, `~/.focus/state.json`, 앱 숨기기·종료, 블록 중 앱 차단, 방해금지 on/off 호출, 상태 문구 | 저장소 |
+| 단축어 `SD Focus On`/`SD Focus Off` | 방해금지 켜기·끄기 (macOS에 CLI가 없어서) | macOS |
 
 ```
-⌃⌥2 → 단축어 "SD Deep 50"
-        ├─ 1. bin/sd deep ── 입력창 → 로그 → state.json → 앱 정리 → 50분 감시 시작
-        │     (취소하면 오류로 끝나고 단축어도 멈춤)
-        ├─ 2. 날짜 조정 (+50분)
-        ├─ 3. 방해금지 켜기 (50분 뒤 자동 꺼짐)
-        └─ 4. 알림 표시: 셸 스크립트 결과
+⌃⌥2 → Hammerspoon → bin/sd deep
+                      ├─ 입력창 (취소·빈칸이면 여기서 끝, 방해금지도 안 켜짐)
+                      ├─ shortcuts run "SD Focus On"
+                      ├─ Logs/에 start 줄, state.json, 앱 정리
+                      └─ 50분 감시 시작 ── 끝나면 SD Focus Off, end 줄, 알림
+     ← stdout "Deep 50 시작 ~HH:MM — …" → Hammerspoon 알림
 ```
 
 ### 알림 경로
 
-| 상황 | 누가 띄우나 |
+| 상황 | 경로 |
 |---|---|
-| ⌃⌥1·⌃⌥2·⌃⌥0을 누른 직후 | 해당 단축어의 마지막 `알림 표시`가 `셸 스크립트 결과`(sd의 stdout)를 띄운다 |
-| 블록 중 Discord·KakaoTalk 강제 종료, 50분 경과 | 단축어는 이미 끝났다. 백그라운드 `sd _guard`가 `shortcuts run "SD Notify"`로 알림을 요청한다 |
+| ⌃⌥1·⌃⌥2·⌃⌥0 직후 | `bin/sd`의 stdout(성공)·stderr(실패)를 Hammerspoon이 알림으로 |
+| 블록 중 앱 차단, 50분 경과 | 감시 프로세스가 `~/.focus/notify`에 쓴다 → Hammerspoon이 읽어서 알림 후 삭제 |
 
-스크립트가 직접 보내는 알림(osascript)은 "스크립트 편집기" 알림으로 취급된다. 이 Mac에서는 그 알림이 꺼져 있어서 단축어 앱 알림을 거친다. `SD Notify`가 없거나 실패하면 osascript로 대신 보낸다.
+Hammerspoon이 꺼져 있으면 감시 프로세스는 osascript로 알린다(스크립트 편집기 알림이 꺼져 있으면 안 보임).
 
 ## 2. 사전 준비 (1회)
 
-1. 단축어 앱 → 설정(⌘,) → 고급 → **스크립트 실행 허용**
+1. `brew install --cask hammerspoon` → `bin/setup` → Hammerspoon 실행
+   - Hammerspoon Preferences → **Launch Hammerspoon at login** 켜기 (꺼져 있으면 단축키가 안 먹는다)
+   - 처음 알림을 띄울 때 Hammerspoon 알림 허용을 묻는다 → 허용
 2. 시스템 설정 → 제어 센터 → 집중 모드 → 메뉴 막대에서 보기: **활성화될 때**
    - 기본값이 "표시 안 함"이면 방해금지가 켜져도 달 아이콘이 안 보인다.
 3. 기록 볼트 `~/workspace/personal/record-vault`를 Obsidian에서 "Open folder as vault"로 연다.
 
-## 3. 단축어 만들기
+## 3. 단축어 2개 (방해금지 전용)
 
-공통 조작:
-
-- **새 단축어:** ⌘N
-- **이름:** 편집 창 맨 위 제목을 클릭해서 입력
-- **액션 추가:** 오른쪽 검색창에서 찾아 편집 영역으로 끌어오기
-- **변수 넣기:** 칸을 클릭하면 변수 목록이 뜬다
-- **키보드 단축키:** ⓘ → 키보드 단축키 추가
-- **셸 스크립트 실행:** 셸은 `zsh`, 입력은 사용 안 함
-
-### SD Start Day (⌃⌥1)
+각각 액션 하나다. 키보드 단축키는 지정하지 않는다(키는 Hammerspoon이 받는다).
 
 ```
-[셸 스크립트 실행: /Users/wontakryu/workspace/personal/streaming-deck/bin/sd start-day]
-[알림 표시: 셸 스크립트 결과]
+SD Focus On:   [집중 모드 설정: 방해금지 켜기, 끝: 끌 때까지]
+SD Focus Off:  [집중 모드 설정: 방해금지 끄기]
 ```
 
-### SD Deep 50 (⌃⌥2)
+1. 단축어 앱에서 ⌘N → 이름을 정확히 `SD Focus On` / `SD Focus Off`
+2. 오른쪽 검색창에서 `집중 모드 설정`을 끌어와 켜기/끄기를 고른다.
+3. 테스트: `shortcuts run "SD Focus On"` → 달 아이콘 → `shortcuts run "SD Focus Off"`
+   - 처음 실행 시 "계속하겠습니까" 알림이 뜨고 명령이 멈추면 옵션 → **항상 허용**
 
-```
-[셸 스크립트 실행: /Users/wontakryu/workspace/personal/streaming-deck/bin/sd deep]
-[날짜 조정: 현재 날짜에 50 분 더하기]
-[집중 모드 설정: 방해금지 켜기, 끝: 시간 = 조정된 날짜]
-[알림 표시: 셸 스크립트 결과]
-```
+ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify`는 삭제한다. ⌃⌥ 키가 Hammerspoon과 겹쳐 두 번 실행된다. `bin/setup`이 남아 있으면 알려준다.
 
-날짜 조정이 번거로우면 집중 모드 설정의 끝 시점을 "끌 때까지"로 두고 날짜 조정은 뺀다. 이때 방해금지는 ⌃⌥0이나 제어 센터로 끈다.
+## 4. 상태 표시 (메뉴 막대 + HUD)
 
-### SD Shutdown (⌃⌥0)
-
-```
-[셸 스크립트 실행: /Users/wontakryu/workspace/personal/streaming-deck/bin/sd shutdown]
-[집중 모드 설정: 방해금지 끄기]
-[알림 표시: 셸 스크립트 결과]
-```
-
-### SD Notify (키 없음, 스크립트 전용)
-
-`bin/sd`의 백그라운드 감시(`_guard`)가 블록 종료와 앱 차단 알림에 쓴다. 이름이 정확히 `SD Notify`여야 한다.
-
-```
-[빠른 동작에서 모든 항목 입력 받기]   ← 자동으로 생김
-[알림 표시: 단축어 입력]
-```
-
-1. ⌘N → 이름 `SD Notify`
-2. ⓘ → 세부사항 → **빠른 동작으로 사용** 체크
-   - 이걸 켜야 변수 목록에 "단축어 입력"이 나타난다.
-   - 맨 위에 "…에서 입력 받기" 줄이 생긴다. 유형이 `모든 항목`이 아니면 바꾼다.
-3. `알림 표시`를 추가하고, 문구 칸에 **단축어 입력**을 넣는다.
-   - 또는 문구 칸을 우클릭 → 변수 삽입 → 단축어 입력
-
-테스트:
-
-```bash
-echo "알림 테스트" > /tmp/n.txt && shortcuts run "SD Notify" -i /tmp/n.txt
-```
-
-처음 실행하면 "계속하겠습니까" 알림이 뜨고 명령이 멈춘다. 옵션 → **항상 허용**을 누른다.
-
-## 4. 상태 표시 (SwiftBar 메뉴 막대 + Hammerspoon HUD)
-
-`bin/sd status`가 상태 한 줄을 만든다. 메뉴 막대(SwiftBar)는 `·` 앞부분만 짧게, 화면 오른쪽 아래 HUD(Hammerspoon)는 전체 문구를 항상 위에 보여준다. 결정 기록: `adr/001-swiftbar-menu-bar`, `adr/003-hammerspoon-hud`.
+`bin/sd status`가 상태 한 줄을 만든다. Hammerspoon이 메뉴 막대에는 ` · ` 앞부분만, 화면 오른쪽 아래 HUD에는 전체 문구를 항상 위에 보여준다. 20초마다, 그리고 `~/.focus`가 바뀔 때마다 갱신한다.
 
 | 상태 | 메뉴 막대 | HUD (전체 문구) |
 |---|---|---|
 | Start Day 전, Shutdown 후, 날짜가 바뀜 | 없음 | 없음 |
 | Start Day 이후, 블록 사이 | `📌 1/2` | `📌 1/2 · MIT` (완료 딥 블록 / MIT의 `[N]`, 없으면 3), 회색 |
-| 딥 블록 중 | `🎯 32m` | `🎯 32m · 완료 조건`, 빨강 |
+| 딥 블록 중 | `🎯 32m` (빨강) | `🎯 32m · 완료 조건`, 빨강 |
 | 블록 종료 후 10분 | `⏰ 블록 종료` | `⏰ 블록 종료 · 집중도를 기록하고 쉬세요` → 이후 `📌` |
 
-MIT 줄 끝에 필요한 블록 수를 적는다: `- 메모리 모듈 설계 [2]`. Deep 50 입력창 기본값에서는 `[2]`가 빠진다. 결정 기록: `git log adr/001-swiftbar-menu-bar`.
-
-```bash
-brew install --cask swiftbar
-defaults write com.ameba.SwiftBar PluginDirectory ~/workspace/personal/streaming-deck/swiftbar
-open -a SwiftBar
-```
-
-- 플러그인 `swiftbar/sd.30s.sh`는 30초마다 `bin/sd status`를 부른다.
-- HUD: `brew install --cask hammerspoon` → `bin/setup`이 `~/.hammerspoon/init.lua`에 `dofile(".../hammerspoon/sd_hud.lua").start(...)`를 추가 → Hammerspoon 실행(메뉴 → Reload Config). 20초마다, 그리고 `~/.focus`가 바뀔 때마다 갱신한다. 위치·색은 `hammerspoon/sd_hud.lua` 상단 상수.
-- 메뉴 막대 항목이 안 보이면 노치 옆 공간 부족이다. ⌘+드래그로 안 쓰는 아이콘을 빼서 자리를 만든다.
-- 로그인 시 자동 실행: SwiftBar 메뉴 → Preferences → Launch at login.
-- 블록 표시를 더 강하게 하려면 전용 집중 모드 "딥워크"를 만들고, 집중 모드 필터 → 외관 설정 → 다크 모드를 켠다. `SD Deep 50`·`SD Shutdown`의 집중 모드를 `딥워크`로 바꾼다.
+- MIT 줄 끝에 필요한 블록 수를 적는다: `- 메모리 모듈 설계 [2]`. Deep 50 입력창 기본값에서는 `[2]`가 빠진다.
+- 위치·색·갱신 주기·단축키는 `hammerspoon/sd.lua` 상단 상수. 바꾼 뒤 Hammerspoon 앱을 열어 콘솔에서 `hs.reload()`.
+- Hammerspoon 자체 메뉴 막대 아이콘은 노치 옆 공간을 아끼려고 숨긴다.
+- 메뉴 막대 항목이 안 보이면 노치 옆 공간 부족이다. ⌘+드래그로 안 쓰는 아이콘을 빼서 자리를 만든다. HUD는 영향을 받지 않는다.
+- 블록 표시를 더 강하게 하려면 전용 집중 모드 "딥워크"를 만들고 집중 모드 필터 → 외관 설정 → 다크 모드를 켠다. `SD Focus On`/`Off`의 집중 모드를 `딥워크`로 바꾼다.
 
 ## 5. 첫 실행 권한
 
 | 요청 | 언제 | 선택 |
 |---|---|---|
-| 단축어가 System Events 제어 | 앱 숨기기·입력창 처음 사용 | 허용 |
-| "계속하겠습니까" (알림 형태) | `shortcuts run`으로 단축어 첫 호출 | 옵션 → 항상 허용 |
+| Hammerspoon 알림 | 첫 알림 | 허용 |
+| Hammerspoon이 System Events 제어 | 앱 숨기기·입력창 처음 사용 | 허용 |
+| "계속하겠습니까" (알림 형태) | `SD Focus On/Off` 첫 호출 | 옵션 → 항상 허용 |
 
-## 6. 문제 해결 (오늘 겪은 것)
+## 6. 문제 해결
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| 방해금지 달 아이콘이 안 보임 | 제어 센터에서 집중 모드 메뉴 막대 표시가 꺼져 있음 | 2장의 2번 설정 |
-| "집중 모드"로 표시됨 | macOS 12부터 방해금지는 집중 모드 안의 한 모드 | 정상. 필요하면 전용 "딥워크" 모드를 만들어 교체 |
-| sd 알림이 안 뜸 | 스크립트 편집기 알림이 꺼져 있음 | 단축어 알림 경로(`SD Notify`) 사용 |
-| `shortcuts run "SD Notify"`가 오류 "단축어를 찾을 수 없음" | 단축어가 없거나 이름이 다름 | `shortcuts list \| grep "SD Notify"`로 확인 |
-| `shortcuts run`이 끝나지 않음, 알림 센터에도 없음 | "계속하겠습니까" 권한 확인 대기 | 알림 → 옵션 → 항상 허용 |
-| 변수 목록에 "단축어 입력"이 없음 | 단축어가 입력을 받도록 설정되지 않음 | ⓘ → 빠른 동작으로 사용 체크 |
-| 완료 조건 한글이 `ㄴㅗㅌㅡ`처럼 저장됨 | osascript 입력창에서 한글 IME 조합 실패 (간헐적) | 반복되면 입력창을 단축어의 "입력 요청" 액션으로 교체 검토 |
-| 로그 줄이 `D@@`처럼 깨짐 | 노트 편집 중 sd가 같은 파일에 써서 Obsidian 병합 충돌 | 로그를 `Logs/`로 분리 (adr/002). 노트에는 임베드만 |
-| 블록 중 카톡·Discord가 다시 켜짐 | 숨김은 ⌘Tab으로 되돌릴 수 있음 | `BLOCKED_APPS`가 블록 동안 5초마다 종료 (`bin/sd`) |
+| ⌃⌥ 키를 눌러도 반응 없음 | Hammerspoon 미실행 | `open -a /Applications/Hammerspoon.app`, 로그인 시 자동 실행 |
+| ⌃⌥ 키가 두 번 실행됨 | 예전 SD 단축어의 키가 남아 있음 | 3장 마지막 문단: 예전 단축어 삭제 |
+| "⚠️ 방해금지 On 실패" 알림 | `SD Focus On` 단축어가 없거나 권한 대기 | 3장 |
+| 방해금지 달 아이콘이 안 보임 | 제어 센터에서 집중 모드 메뉴 막대 표시가 꺼져 있음 | 2장의 2번 |
+| "집중 모드"로 표시됨 | macOS 12부터 방해금지는 집중 모드 안의 한 모드 | 정상 |
+| `shortcuts run`이 끝나지 않음 | "계속하겠습니까" 권한 확인 대기 | 알림 → 옵션 → 항상 허용 |
+| 완료 조건 한글이 `ㄴㅗㅌㅡ`처럼 저장됨 | osascript 입력창에서 한글 IME 조합 실패 (간헐적) | 반복되면 입력창을 `hs.dialog.textPrompt`로 교체 검토 |
+| 로그 줄이 `D@@`처럼 깨짐 | 노트 편집 중 sd가 같은 파일에 써서 Obsidian 병합 충돌 | 로그를 `Logs/`로 분리 (adr/002) |
+| 블록 중 카톡·Discord가 다시 켜짐 | 숨김은 ⌘Tab으로 되돌릴 수 있음 | `BLOCKED_APPS`가 블록 동안 5초마다 종료 |
+| Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
 
 ## 7. 동작 확인 체크리스트
 
-- [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림, 메뉴 막대 `📌 0/3`
+- [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림, 메뉴 막대 `📌 0/3`, 회색 HUD
 - [ ] ⌃⌥2 → 입력창 → "Deep 50 시작 ~HH:MM" 알림, 달 아이콘, 로그(`Logs/`)에 `start deep` 줄
-- [ ] ⌃⌥2 → 입력창 취소 → 방해금지 안 켜짐
+- [ ] ⌃⌥2 → 입력창 취소 → "블록 취소됨" 알림, 방해금지 안 켜짐
 - [ ] 블록 중 Discord 실행 → 5초 내 종료, "딥 블록 중" 알림, `distraction` 줄
 - [ ] 블록 중 메뉴 막대 `🎯 Nm`, 화면 오른쪽 아래 빨간 HUD에 완료 조건 전체
-- [ ] 50분 후 "블록 종료" 알림, 로그(`Logs/`)에 `end deep` 줄, 메뉴 막대 `⏰ 블록 종료`, 달 아이콘 꺼짐
-- [ ] ⌃⌥0 → 방해금지 해제, 로그(`Logs/`)에 `shutdown` 줄, 노트 열림, iTerm2 종료, 알림, 메뉴 막대 표시 사라짐
+- [ ] 50분 후 "블록 종료" 알림, `end deep` 줄, 달 아이콘 꺼짐, `⏰` → 10분 뒤 `📌`
+- [ ] ⌃⌥0 → 방해금지 해제, `shutdown` 줄, 노트 열림, iTerm2 종료, 알림, 메뉴 막대·HUD 사라짐
