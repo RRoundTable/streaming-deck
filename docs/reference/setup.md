@@ -106,14 +106,16 @@ echo "알림 테스트" > /tmp/n.txt && shortcuts run "SD Notify" -i /tmp/n.txt
 
 처음 실행하면 "계속하겠습니까" 알림이 뜨고 명령이 멈춘다. 옵션 → **항상 허용**을 누른다.
 
-## 4. 메뉴 막대 표시 (SwiftBar)
+## 4. 상태 표시 (SwiftBar 메뉴 막대 + Hammerspoon HUD)
 
-| 상태 | 메뉴 막대 |
-|---|---|
-| Start Day 전, Shutdown 후, 날짜가 바뀜 | 표시 없음 |
-| Start Day 이후, 블록 사이 | `📌 1/2 · MIT` (완료 딥 블록 / MIT의 `[N]`, 없으면 3) |
-| 딥 블록 중 | `🎯 32m · 완료 조건` |
-| 블록 종료 후 10분 | `⏰ 블록 종료 — 집중도 기록` → 이후 `📌` |
+`bin/sd status`가 상태 한 줄을 만든다. 메뉴 막대(SwiftBar)는 `·` 앞부분만 짧게, 화면 오른쪽 아래 HUD(Hammerspoon)는 전체 문구를 항상 위에 보여준다. 결정 기록: `adr/001-swiftbar-menu-bar`, `adr/003-hammerspoon-hud`.
+
+| 상태 | 메뉴 막대 | HUD (전체 문구) |
+|---|---|---|
+| Start Day 전, Shutdown 후, 날짜가 바뀜 | 없음 | 없음 |
+| Start Day 이후, 블록 사이 | `📌 1/2` | `📌 1/2 · MIT` (완료 딥 블록 / MIT의 `[N]`, 없으면 3), 회색 |
+| 딥 블록 중 | `🎯 32m` | `🎯 32m · 완료 조건`, 빨강 |
+| 블록 종료 후 10분 | `⏰ 블록 종료` | `⏰ 블록 종료 · 집중도를 기록하고 쉬세요` → 이후 `📌` |
 
 MIT 줄 끝에 필요한 블록 수를 적는다: `- 메모리 모듈 설계 [2]`. Deep 50 입력창 기본값에서는 `[2]`가 빠진다. 결정 기록: `git log adr/001-swiftbar-menu-bar`.
 
@@ -123,7 +125,9 @@ defaults write com.ameba.SwiftBar PluginDirectory ~/workspace/personal/streaming
 open -a SwiftBar
 ```
 
-- 플러그인 `swiftbar/sd.30s.sh`는 30초마다 `~/.focus/state.json`을 읽기만 한다.
+- 플러그인 `swiftbar/sd.30s.sh`는 30초마다 `bin/sd status`를 부른다.
+- HUD: `brew install --cask hammerspoon` → `bin/setup`이 `~/.hammerspoon/init.lua`에 `dofile(".../hammerspoon/sd_hud.lua").start(...)`를 추가 → Hammerspoon 실행(메뉴 → Reload Config). 20초마다, 그리고 `~/.focus`가 바뀔 때마다 갱신한다. 위치·색은 `hammerspoon/sd_hud.lua` 상단 상수.
+- 메뉴 막대 항목이 안 보이면 노치 옆 공간 부족이다. ⌘+드래그로 안 쓰는 아이콘을 빼서 자리를 만든다.
 - 로그인 시 자동 실행: SwiftBar 메뉴 → Preferences → Launch at login.
 - 블록 표시를 더 강하게 하려면 전용 집중 모드 "딥워크"를 만들고, 집중 모드 필터 → 외관 설정 → 다크 모드를 켠다. `SD Deep 50`·`SD Shutdown`의 집중 모드를 `딥워크`로 바꾼다.
 
@@ -154,6 +158,6 @@ open -a SwiftBar
 - [ ] ⌃⌥2 → 입력창 → "Deep 50 시작 ~HH:MM" 알림, 달 아이콘, 로그(`Logs/`)에 `start deep` 줄
 - [ ] ⌃⌥2 → 입력창 취소 → 방해금지 안 켜짐
 - [ ] 블록 중 Discord 실행 → 5초 내 종료, "딥 블록 중" 알림, `distraction` 줄
-- [ ] 블록 중 메뉴 막대에 `🎯 Nm · 작업명`
+- [ ] 블록 중 메뉴 막대 `🎯 Nm`, 화면 오른쪽 아래 빨간 HUD에 완료 조건 전체
 - [ ] 50분 후 "블록 종료" 알림, 로그(`Logs/`)에 `end deep` 줄, 메뉴 막대 `⏰ 블록 종료`, 달 아이콘 꺼짐
 - [ ] ⌃⌥0 → 방해금지 해제, 로그(`Logs/`)에 `shutdown` 줄, 노트 열림, iTerm2 종료, 알림, 메뉴 막대 표시 사라짐
