@@ -26,7 +26,7 @@
 - [x] `bin/setup` + `vault-template/` + `setup-streaming-deck` skill
 
 확인 남음
-- [ ] 한 블록 전체를 Hammerspoon 경로로: HUD 시간 감소, 50분 후 알림·`end deep`·방해금지 해제 ([setup.md 7장](reference/setup.md))
+- [x] 한 블록 전체를 Hammerspoon 경로로 (확인 2026-09-27): HUD 시간 감소, 50분 후 알림·`end deep`·방해금지 해제 ([setup.md 7장](reference/setup.md))
 
 ## Next — 1~2주차 (2026-09-28~)
 
