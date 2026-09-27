@@ -89,12 +89,14 @@ function M.start(repo)
   sd = repo .. "/bin/sd"
   hs.menuIcon(false)  -- 노치 옆 공간 절약. 설정 다시 읽기: Hammerspoon 앱을 열어 콘솔에서 hs.reload()
   menubar = hs.menubar.new()
+  M.hotkeys = {}
   for key, cmd in pairs(HOTKEYS) do
-    hs.hotkey.bind(HOTKEY_MODS, key, function() run(cmd) end)
+    table.insert(M.hotkeys, hs.hotkey.bind(HOTKEY_MODS, key, function() run(cmd) end))
   end
-  -- 참조를 M에 보관해야 가비지 컬렉션으로 멈추지 않는다.
   M.timer = hs.timer.doEvery(REFRESH_SEC, refresh)
   M.watcher = hs.pathwatcher.new(FOCUS_DIR, onFocusDirChange):start()
+  -- 전역에 붙잡아 두지 않으면 가비지 컬렉션이 타이머·감시를 멈춘다(init.lua는 반환값을 버린다).
+  _G.streamingDeck = M
   refresh()
   return M
 end
