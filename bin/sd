@@ -84,6 +84,8 @@ write_state() {  # write_state <mode> [task started ends]
 }
 
 quit_app() { osascript -e "quit app \"$1\"" }
+# 종료 요청만 보내고 기다리지 않는다. 확인창이 떠도 단축어의 다음 단계가 막히지 않게.
+quit_app_async() { quit_app $1 >/dev/null 2>&1 &! }
 
 clear_distractions() {
   local app
@@ -91,7 +93,7 @@ clear_distractions() {
     pgrep -xq $app && osascript -e "tell application \"System Events\" to set visible of process \"$app\" to false"
   done
   for app in $BLOCKED_APPS; do
-    pgrep -xq $app && quit_app $app
+    pgrep -xq $app && quit_app_async $app
   done
   return 0
 }
@@ -144,7 +146,7 @@ cmd_shutdown() {
   write_state off
   append_log "- $(date +%H:%M) shutdown"
   open_note
-  pgrep -xq iTerm2 && osascript -e 'quit app "iTerm2"'
+  pgrep -xq iTerm2 && quit_app_async iTerm2
   print "Shutdown 완료 — 회고와 내일 첫 작업을 적으세요"
 }
 
