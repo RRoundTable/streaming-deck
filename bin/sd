@@ -3,6 +3,7 @@
 #   sd start-day        데일리 노트 생성 → Calendar·Tasks·노트 열기
 #   sd deep [완료 조건]   50분 딥 블록 시작 (인자 없으면 입력창)
 #   sd shutdown         블록 상태 해제 → 데일리 노트 열기 → iTerm2 종료
+#   sd status           현재 상태 한 줄 (SwiftBar·Hammerspoon HUD가 표시)
 set -euo pipefail
 
 SELF=${0:A}
@@ -13,6 +14,8 @@ STATE=$STATE_DIR/state.json
 TODAY=$(date +%F)
 NOTE=$VAULT/Daily/$TODAY.md     # 사람이 편집. sd는 생성할 때만 쓴다
 LOG=$VAULT/Logs/$TODAY.md       # sd만 쓴다. 노트에 ![[Logs/날짜]]로 임베드
+DEFAULT_BLOCKS=3                    # MIT에 [N]이 없을 때 목표 딥 블록 수
+BREAK_MIN=10                        # 블록 종료 후 ⏰를 보여주는 시간
 HIDDEN_APPS=(Slack Mail)            # 블록 시작 시 숨김
 BLOCKED_APPS=(Discord KakaoTalk)    # 블록 동안 실행 즉시 종료
 
@@ -137,6 +140,37 @@ cmd__guard() {
   notify "블록 종료 — 집중도 1~5를 기록하고 화면 밖에서 쉬세요"
 }
 
+field() { sed -n "s/.*\"$1\": \"\([^\"]*\)\".*/\1/p" $STATE 2>/dev/null }
+
+# MIT 진행: "📌 완료/목표 · MIT". 목표는 MIT 줄 끝 [N], 없으면 DEFAULT_BLOCKS.
+status_day() {
+  local mit=$(awk '/^## /{ in_mit = ($0 == "## MIT"); next }
+                   in_mit && sub(/^- /, "") && $0 != "" { print; exit }' $NOTE 2>/dev/null)
+  local target=$DEFAULT_BLOCKS done_=$(grep -c '^- [0-9:]* end deep$' $LOG 2>/dev/null || true)
+  [[ $mit =~ ' *\[([0-9]+)\] *$' ]] && { target=$match[1]; mit=${mit[1,MBEGIN-1]}; }
+  print -r -- "📌 ${done_:-0}/$target · ${mit:-MIT를 적으세요}"
+}
+
+# 출력 없음 = 표시 없음 (Shutdown 후, 다른 날짜의 상태)
+cmd_status() {
+  case $(field mode) in
+    day)
+      [[ $(field date) == $TODAY ]] && status_day ;;
+    deep)
+      local started=$(field started) ends=$(field ends)
+      [[ ${started[1,10]} == $TODAY ]] || return 0
+      local left=$(( ($(date -j -f %FT%T $ends +%s) - $(date +%s) + 59) / 60 ))
+      if (( left > 0 )); then
+        print -r -- "🎯 ${left}m · $(field task)"
+      elif (( left > -BREAK_MIN )); then
+        print "⏰ 블록 종료 · 집중도를 기록하고 쉬세요"
+      else
+        status_day
+      fi ;;
+  esac
+  return 0
+}
+
 cmd_shutdown() {
   write_state off
   append_log "- $(date +%H:%M) shutdown"
@@ -149,6 +183,7 @@ case ${1:-} in
   start-day) cmd_start_day ;;
   deep)      shift; cmd_deep "${1:-}" ;;
   shutdown)  cmd_shutdown ;;
+  status)    cmd_status ;;
   _guard)    shift; cmd__guard "$@" ;;
-  *)         die "사용법: sd start-day | deep [완료 조건] | shutdown" ;;
+  *)         die "사용법: sd start-day | deep [완료 조건] | shutdown | status" ;;
 esac

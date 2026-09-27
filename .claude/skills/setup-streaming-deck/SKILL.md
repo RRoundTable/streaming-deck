@@ -34,6 +34,7 @@ which brew
 ```bash
 brew install --cask obsidian    # 없을 때만
 brew install --cask swiftbar    # 없을 때만
+brew install --cask hammerspoon # 없을 때만
 ```
 
 ## 3. bin/setup 실행
@@ -45,7 +46,7 @@ SD_VAULT=<경로> <REPO>/bin/setup       # 다른 볼트
 
 출력의 ✓/✗를 사용자에게 요약한다. 마지막에 출력되는 "셸 스크립트 실행에 넣을 명령" 3줄은 5단계에서 그대로 쓴다.
 
-그다음 SwiftBar를 실행한다: `open -a SwiftBar`. 로그인 시 자동 실행은 SwiftBar → Preferences → Launch at login에서 사용자가 켠다.
+그다음 SwiftBar와 Hammerspoon을 실행한다: `open -a SwiftBar`, `open -a /Applications/Hammerspoon.app`. 로그인 시 자동 실행은 각 앱의 Preferences(SwiftBar: Launch at login, Hammerspoon: Launch Hammerspoon at login)에서 사용자가 켠다.
 
 ## 4. Obsidian 볼트 등록 (사용자)
 
@@ -84,7 +85,7 @@ Obsidian → 볼트 전환 → "Open folder as vault" → 기록 볼트 폴더. 
 cat ~/.focus/state.json                                          # 블록 상태
 cat <볼트>/Logs/$(date +%F).md                                   # 로그 줄 (노트에는 임베드)
 /bin/ps -axo command | grep "[_]guard"                          # 블록 감시 프로세스
-<REPO>/swiftbar/sd.30s.sh                                       # 메뉴 막대 출력
+<REPO>/bin/sd status                                            # 메뉴 막대·HUD에 표시될 문구
 ```
 
 알림 표시, 달 아이콘, 메뉴 막대처럼 화면에 보이는 것은 Claude가 볼 수 없다(화면 기록·알림 DB 권한 없음). 사용자에게 물어서 확인한다.
