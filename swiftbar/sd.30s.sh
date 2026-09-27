@@ -4,14 +4,16 @@
 # <swiftbar.hideLastUpdated>true</swiftbar.hideLastUpdated>
 # <swiftbar.hideDisablePlugin>true</swiftbar.hideDisablePlugin>
 # <swiftbar.hideSwiftBar>true</swiftbar.hideSwiftBar>
-# 메뉴 막대 표시. ~/.focus/state.json과 오늘 데일리 노트를 읽기만 한다.
+# 메뉴 막대 표시. ~/.focus/state.json, 오늘 노트(MIT), 오늘 로그를 읽기만 한다.
 #   딥 블록 중          🎯 32m · 완료 조건
 #   블록 종료 후 10분    ⏰ 블록 종료 — 집중도 기록
 #   Start Day 이후      📌 1/2 · MIT   (완료 블록 수 / MIT의 [N], 없으면 3)
 #   Shutdown·다른 날    표시 없음
 export LC_ALL=en_US.UTF-8   # 한글을 글자 단위로 자르기 위해
 STATE=$HOME/.focus/state.json
-NOTE=${SD_VAULT:-$HOME/workspace/personal/record-vault}/Daily/$(date +%F).md
+VAULT=${SD_VAULT:-$HOME/workspace/personal/record-vault}
+NOTE=$VAULT/Daily/$(date +%F).md
+LOG=$VAULT/Logs/$(date +%F).md
 BREAK_MIN=10
 DEFAULT_BLOCKS=3
 RED='| color=#E5484D'
@@ -25,7 +27,7 @@ show_day() {
                    in_mit && sub(/^- /, "") && $0 != "" { print; exit }' $NOTE 2>/dev/null)
   local target=$DEFAULT_BLOCKS done_=0
   [[ $mit =~ ' *\[([0-9]+)\] *$' ]] && { target=$match[1]; mit=${mit[1,MBEGIN-1]}; }
-  [[ -f $NOTE ]] && done_=$(grep -c '^- [0-9:]* end deep$' $NOTE)
+  [[ -f $LOG ]] && done_=$(grep -c '^- [0-9:]* end deep$' $LOG)
   mit=$(clean $mit)
   print -r -- "📌 $done_/$target · ${${mit:-MIT를 적으세요}[1,20]}"
   print -- ---

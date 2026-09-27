@@ -12,7 +12,7 @@ VAULT=${SD_VAULT:-$HOME/workspace/personal/record-vault}
 chmod +x $REPO/bin/sd $REPO/swiftbar/*.sh
 
 # 기록 볼트: 없는 파일만 복사
-mkdir -p $VAULT/{Daily,Weekly}
+mkdir -p $VAULT/{Daily,Weekly,Logs}
 rsync -a --ignore-existing $REPO/vault-template/ $VAULT/
 print "✓ 기록 볼트: $VAULT"
 

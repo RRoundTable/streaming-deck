@@ -82,7 +82,7 @@ Obsidian → 볼트 전환 → "Open folder as vault" → 기록 볼트 폴더. 
 
 ```bash
 cat ~/.focus/state.json                                          # 블록 상태
-grep -A20 "## 집중 로그" <볼트>/Daily/$(date +%F).md               # 로그 줄
+cat <볼트>/Logs/$(date +%F).md                                   # 로그 줄 (노트에는 임베드)
 /bin/ps -axo command | grep "[_]guard"                          # 블록 감시 프로세스
 <REPO>/swiftbar/sd.30s.sh                                       # 메뉴 막대 출력
 ```

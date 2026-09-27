@@ -11,8 +11,8 @@ VAULT_NAME=${VAULT:t}
 STATE_DIR=$HOME/.focus
 STATE=$STATE_DIR/state.json
 TODAY=$(date +%F)
-NOTE=$VAULT/Daily/$TODAY.md
-LOG_HEADING='## 집중 로그'
+NOTE=$VAULT/Daily/$TODAY.md     # 사람이 편집. sd는 생성할 때만 쓴다
+LOG=$VAULT/Logs/$TODAY.md       # sd만 쓴다. 노트에 ![[Logs/날짜]]로 임베드
 HIDDEN_APPS=(Slack Mail)            # 블록 시작 시 숨김
 BLOCKED_APPS=(Discord KakaoTalk)    # 블록 동안 실행 즉시 종료
 
@@ -33,36 +33,27 @@ ensure_note() {
   [[ -f $VAULT/Templates/Daily.md ]] || die "템플릿 없음: $VAULT/Templates/Daily.md"
   mkdir -p $VAULT/Daily
   local title=$(LC_ALL=C date '+%Y-%m-%d %a')
-  sed "s/{{date:YYYY-MM-DD ddd}}/$title/" $VAULT/Templates/Daily.md > $NOTE
+  sed -e "s/{{date:YYYY-MM-DD ddd}}/$title/" -e "s/{{date:YYYY-MM-DD}}/$TODAY/" \
+    $VAULT/Templates/Daily.md > $NOTE
 }
 
 open_note() {
   open "obsidian://open?vault=$VAULT_NAME&file=Daily%2F$TODAY"
 }
 
-# '## 집중 로그' 섹션의 마지막 내용 줄 다음에 한 줄 추가한다.
 append_log() {
   ensure_note
-  grep -qxF $LOG_HEADING $NOTE || die "'$LOG_HEADING' 헤딩 없음: $NOTE"
-  local tmp=$NOTE.sd-tmp
-  awk -v heading=$LOG_HEADING -v line="$1" '
-    { lines[NR] = $0 }
-    END {
-      for (i = 1; i <= NR; i++) if (lines[i] == heading) { h = i; break }
-      last = h
-      for (i = h + 1; i <= NR && lines[i] !~ /^## /; i++) if (lines[i] != "") last = i
-      for (i = 1; i <= NR; i++) { print lines[i]; if (i == last) print line }
-    }' $NOTE > $tmp
-  mv $tmp $NOTE
+  mkdir -p $VAULT/Logs
+  print -r -- "$1" >> $LOG
 }
 
 # 완료 조건 기본값: 오늘 마지막 interrupt의 '다음:', 없으면 MIT 첫 항목.
 default_task() {
-  [[ -f $NOTE ]] || return 0
-  local next=$(sed -n 's/^- [0-9:]* interrupt — 다음: //p' $NOTE | tail -1)
+  local next=$(sed -n 's/^- [0-9:]* interrupt — 다음: //p' $LOG 2>/dev/null | tail -1)
   if [[ -n $next ]]; then print -r -- $next; return; fi
   awk '/^## /{ in_mit = ($0 == "## MIT") ; next }
-       in_mit && sub(/^- /, "") && $0 != "" { sub(/ *\[[0-9]+\] *$/, ""); print; exit }' $NOTE
+       in_mit && sub(/^- /, "") && $0 != "" { sub(/ *\[[0-9]+\] *$/, ""); print; exit }' $NOTE 2>/dev/null
+  return 0
 }
 
 ask_task() {
