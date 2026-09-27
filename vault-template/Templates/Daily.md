@@ -7,6 +7,7 @@
 - 
 
 ## 집중 로그
+[[Logs/{{date:YYYY-MM-DD}}|로그 열기]]
 ![[Logs/{{date:YYYY-MM-DD}}]]
 
 ## 회고

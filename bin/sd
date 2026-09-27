@@ -33,7 +33,7 @@ ensure_note() {
   [[ -f $VAULT/Templates/Daily.md ]] || die "템플릿 없음: $VAULT/Templates/Daily.md"
   mkdir -p $VAULT/Daily
   local title=$(LC_ALL=C date '+%Y-%m-%d %a')
-  sed -e "s/{{date:YYYY-MM-DD ddd}}/$title/" -e "s/{{date:YYYY-MM-DD}}/$TODAY/" \
+  sed -e "s/{{date:YYYY-MM-DD ddd}}/$title/" -e "s/{{date:YYYY-MM-DD}}/$TODAY/g" \
     $VAULT/Templates/Daily.md > $NOTE
 }
 
@@ -93,6 +93,7 @@ clear_distractions() {
 
 cmd_start_day() {
   ensure_note
+  mkdir -p $VAULT/Logs && touch $LOG   # 노트의 로그 링크가 처음부터 열리도록
   write_state day
   open "https://calendar.google.com/calendar/r/day"
   open "https://tasks.google.com"
