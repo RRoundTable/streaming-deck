@@ -14,7 +14,9 @@ flowchart TD
     B --> F[~/.focus/state.json]
     S --> M[macOS 집중 모드]
     B --> N[앱 숨기기·종료 알림]
-    F --> W[SwiftBar 메뉴 막대<br/>swiftbar/sd.30s.sh]
+    F --> ST[bin/sd status<br/>상태 한 줄]
+    ST --> W[SwiftBar 메뉴 막대<br/>짧게]
+    ST --> H[Hammerspoon HUD<br/>전체 문구]
     F -.later.-> G[Focus Guard 데몬]
 ```
 
@@ -27,7 +29,7 @@ flowchart TD
 | 기록 | Obsidian 기록 볼트 (`~/workspace/personal/record-vault`), 코어 Daily Notes·Templates. 플러그인 없음 | — |
 | 상태 | `~/.focus/state.json` | — |
 | 스크립트 | `bin/sd` (zsh, 단축어 "셸 스크립트 실행"에서 호출) | — |
-| 표시 | SwiftBar + `swiftbar/sd.30s.sh` (state.json 읽기 전용) | adr/001-swiftbar-menu-bar |
+| 표시 | `bin/sd status`가 상태 한 줄을 만들고, SwiftBar(메뉴 막대, 짧게)와 Hammerspoon HUD(화면 구석, 전체 문구)가 그대로 보여준다 | adr/001-swiftbar-menu-bar, adr/003-hammerspoon-hud |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
 
@@ -38,6 +40,7 @@ streaming-deck/
 ├── .claude/skills/setup-streaming-deck/  # 새 Mac 설치 절차 (Claude Code skill)
 ├── bin/sd           # 모든 동작의 진입점 (start-day, deep, shutdown)
 ├── bin/setup        # 설치: 볼트·상태 폴더·SwiftBar 설정 (멱등, 덮어쓰기 없음)
+├── hammerspoon/     # 화면 구석 HUD (sd_hud.lua)
 ├── swiftbar/        # SwiftBar 플러그인 폴더 (메뉴 막대 표시)
 ├── vault-template/  # 기록 볼트 뼈대 (템플릿, Inbox, Goals, .obsidian 설정)
 ├── docs/            # GOAL, ROADMAP, SPEC, ARCHITECTURE, reference/design.md
@@ -49,7 +52,7 @@ streaming-deck/
 ## Import Rules
 
 - 각 단축어는 다른 `SD` 단축어에 의존하지 않는다. 공통 동작(로그 한 줄 추가)이 생기면 스크립트 하나로 뽑는다.
-- `state.json`은 `bin/sd`만 쓰고, SwiftBar 플러그인과 Focus Guard는 읽기만 한다. 이 파일이 유일한 계약이다.
+- `state.json`은 `bin/sd`만 쓰고 해석한다. 표시 계층(SwiftBar, Hammerspoon)은 `bin/sd status` 출력만 쓰고 파일을 직접 읽지 않는다. Focus Guard는 state.json을 읽기만 한다.
 
 ## Key Patterns
 
