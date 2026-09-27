@@ -4,21 +4,29 @@
 
 ## Now — 입사 전 (~2026-09-27)
 
-- [x] 기록 볼트 생성 (`~/workspace/personal/record-vault`): `Daily/`, `Weekly/`, `Goals/`, `Inbox.md`, `Templates/`, 데일리 노트 템플릿, 코어 Daily Notes·Templates 설정
-- [x] Obsidian에 볼트 등록
-- [x] `bin/sd`: 데일리 노트 생성, `## 집중 로그`에 줄 추가, 완료 조건 입력창, state.json, 종료 알림 (Advanced URI 대신 파일 직접 수정)
-- [x] 딥 블록 중 Discord·KakaoTalk 실행 차단 + `distraction` 로그 (Focus Guard 중 앱 차단만 앞당김, 사용자 요청 2026-09-26)
-- [x] 단축어 `SD Start Day`, `SD Deep 50`, `SD Shutdown` + 키보드 단축키(⌃⌥1, ⌃⌥2, ⌃⌥0)
-- [x] 완료 알림 (ADR-004 이후 Hammerspoon)
-- [x] 메뉴 막대에 블록 남은 시간·작업명 표시 (ADR-001 SwiftBar → ADR-004 Hammerspoon)
-- [x] 새 Mac 이식: `bin/setup` + `vault-template/` + `setup-streaming-deck` skill (사용자 요청 2026-09-26)
-- [x] 메뉴 막대 하루 상태: Start Day 후 `📌 완료/MIT [N]`, Shutdown 후 숨김 (사용자 요청 2026-09-27)
-- [x] 집중 로그를 `Logs/`로 분리해 Obsidian 편집 충돌 제거 (ADR-002)
-- [x] 긴 MIT·완료 조건을 화면 구석 HUD로 전체 표시, 메뉴 막대는 짧게 (Hammerspoon, ADR-003)
-- [x] 앱 계층을 Hammerspoon 하나로 통합, 단축어는 SD Focus On/Off만 (ADR-004, 사용자 요청 2026-09-27)
-- [ ] 예전 SD 단축어 4개 삭제, SD Focus On/Off 생성 후 블록 종료 알림·방해금지 해제 실제 확인 ([setup.md 7장](reference/setup.md) 체크리스트)
+완료 기준: ⌃⌥1로 오늘 데일리 노트가 열리고, ⌃⌥2 → 50분 후 알림 → 집중 로그에 `start`·`end` 줄이 남는다.
 
-완료 기준: ⌃⌥1로 오늘 데일리 노트가 열리고, ⌃⌥2 → 50분 후 알림 → 집중 로그에 `start` 줄이 남는다.
+기록
+- [x] 기록 볼트 `~/workspace/personal/record-vault`: `Daily/`, `Logs/`, `Weekly/`, `Goals/`, `Inbox.md`, 데일리 노트 템플릿
+- [x] 집중 로그는 `Logs/YYYY-MM-DD.md`, 데일리 노트에 링크+임베드 (ADR-002, 편집 충돌 제거)
+- [x] 로그 이벤트: `start`, `end`, `shutdown`, `distraction`
+
+동작 (`bin/sd`)
+- [x] start-day / deep / shutdown / status
+- [x] 딥 블록 중 Discord·KakaoTalk 실행 즉시 종료 (Focus Guard 중 앱 차단만 앞당김)
+- [x] 방해금지를 블록 시작·종료·Shutdown에 맞춰 on/off (`SD Focus On/Off`)
+- [x] MIT `[N]`으로 필요한 딥 블록 수 지정
+
+앱 계층 (Hammerspoon 하나, ADR-004)
+- [x] ⌃⌥1/2/0 단축키, 결과 알림, 백그라운드 알림(`~/.focus/notify`)
+- [x] 메뉴 막대 `🎯 32m`/`📌 1/2` + 화면 오른쪽 아래 HUD에 전체 문구 (ADR-003)
+- [x] 예전 SD 단축어 4개 삭제, `SD Focus On/Off` 생성 (2026-09-27)
+
+이식
+- [x] `bin/setup` + `vault-template/` + `setup-streaming-deck` skill
+
+확인 남음
+- [ ] 한 블록 전체를 Hammerspoon 경로로: HUD 시간 감소, 50분 후 알림·`end deep`·방해금지 해제 ([setup.md 7장](reference/setup.md))
 
 ## Next — 1~2주차 (2026-09-28~)
 

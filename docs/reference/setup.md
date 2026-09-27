@@ -94,6 +94,8 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 로그 줄이 `D@@`처럼 깨짐 | 노트 편집 중 sd가 같은 파일에 써서 Obsidian 병합 충돌 | 로그를 `Logs/`로 분리 (adr/002) |
 | 블록 중 카톡·Discord가 다시 켜짐 | 숨김은 ⌘Tab으로 되돌릴 수 있음 | `BLOCKED_APPS`가 블록 동안 5초마다 종료 |
 | Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
+| 메뉴 막대·HUD 시간이 몇 분 뒤 멈춤 | 모듈 참조가 없어 가비지 컬렉션이 타이머를 멈춤 | `sd.lua`가 `_G.streamingDeck`에 보관 (수정됨) |
+| ⌃⌥ 키를 눌렀는데 예전 동작(단축어 알림 표시 등) | 예전 SD 단축어가 키를 먼저 가져감 | 예전 단축어 삭제 (3장) |
 
 ## 7. 동작 확인 체크리스트
 
