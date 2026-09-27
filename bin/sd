@@ -62,7 +62,7 @@ default_task() {
   local next=$(sed -n 's/^- [0-9:]* interrupt — 다음: //p' $NOTE | tail -1)
   if [[ -n $next ]]; then print -r -- $next; return; fi
   awk '/^## /{ in_mit = ($0 == "## MIT") ; next }
-       in_mit && sub(/^- /, "") && $0 != "" { print; exit }' $NOTE
+       in_mit && sub(/^- /, "") && $0 != "" { sub(/ *\[[0-9]+\] *$/, ""); print; exit }' $NOTE
 }
 
 ask_task() {
@@ -74,10 +74,12 @@ ask_task() {
 
 json_str() { local s=${1//\\/\\\\}; print -rn -- "\"${s//\"/\\\"}\""; }
 
-write_state() {  # write_state <mode> [task started ends]
+write_state() {  # write_state off | day | deep <task> <started> <ends>
   mkdir -p $STATE_DIR
   if [[ $1 == off ]]; then
     print '{"mode": "off"}' > $STATE
+  elif [[ $1 == day ]]; then
+    print "{\"mode\": \"day\", \"date\": \"$TODAY\"}" > $STATE
   else
     print -r -- "{\"mode\": \"$1\", \"task\": $(json_str $2), \"started\": \"$3\", \"ends\": \"$4\"}" > $STATE
   fi
@@ -100,6 +102,7 @@ clear_distractions() {
 
 cmd_start_day() {
   ensure_note
+  write_state day
   open "https://calendar.google.com/calendar/r/day"
   open "https://tasks.google.com"
   open_note

@@ -108,7 +108,14 @@ echo "알림 테스트" > /tmp/n.txt && shortcuts run "SD Notify" -i /tmp/n.txt
 
 ## 4. 메뉴 막대 표시 (SwiftBar)
 
-딥 블록 동안 메뉴 막대에 `🎯 32m · 작업명`을 띄우고, 50분이 지나면 `⏰ 블록 종료 — 집중도 기록`을 띄운다. 블록이 없으면 아무것도 표시하지 않는다. 결정 기록: `git log adr/001-swiftbar-menu-bar`.
+| 상태 | 메뉴 막대 |
+|---|---|
+| Start Day 전, Shutdown 후, 날짜가 바뀜 | 표시 없음 |
+| Start Day 이후, 블록 사이 | `📌 1/2 · MIT` (완료 딥 블록 / MIT의 `[N]`, 없으면 3) |
+| 딥 블록 중 | `🎯 32m · 완료 조건` |
+| 블록 종료 후 10분 | `⏰ 블록 종료 — 집중도 기록` → 이후 `📌` |
+
+MIT 줄 끝에 필요한 블록 수를 적는다: `- 메모리 모듈 설계 [2]`. Deep 50 입력창 기본값에서는 `[2]`가 빠진다. 결정 기록: `git log adr/001-swiftbar-menu-bar`.
 
 ```bash
 brew install --cask swiftbar
@@ -142,10 +149,10 @@ open -a SwiftBar
 
 ## 7. 동작 확인 체크리스트
 
-- [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림
+- [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림, 메뉴 막대 `📌 0/3`
 - [ ] ⌃⌥2 → 입력창 → "Deep 50 시작 ~HH:MM" 알림, 달 아이콘, 노트에 `start deep` 줄
 - [ ] ⌃⌥2 → 입력창 취소 → 방해금지 안 켜짐
 - [ ] 블록 중 Discord 실행 → 5초 내 종료, "딥 블록 중" 알림, `distraction` 줄
 - [ ] 블록 중 메뉴 막대에 `🎯 Nm · 작업명`
 - [ ] 50분 후 "블록 종료" 알림, 노트에 `end deep` 줄, 메뉴 막대 `⏰ 블록 종료`, 달 아이콘 꺼짐
-- [ ] ⌃⌥0 → 방해금지 해제, 노트에 `shutdown` 줄, 노트 열림, iTerm2 종료, 알림
+- [ ] ⌃⌥0 → 방해금지 해제, 노트에 `shutdown` 줄, 노트 열림, iTerm2 종료, 알림, 메뉴 막대 표시 사라짐

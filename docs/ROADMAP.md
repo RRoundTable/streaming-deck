@@ -12,6 +12,7 @@
 - [x] 완료 알림: 각 단축어 마지막 `알림 표시`, 백그라운드 알림은 `SD Notify` 경유
 - [x] 메뉴 막대에 블록 남은 시간·작업명 표시 (SwiftBar, ADR-001, 사용자 요청 2026-09-26)
 - [x] 새 Mac 이식: `bin/setup` + `vault-template/` + `setup-streaming-deck` skill (사용자 요청 2026-09-26)
+- [x] 메뉴 막대 하루 상태: Start Day 후 `📌 완료/MIT [N]`, Shutdown 후 숨김 (사용자 요청 2026-09-27)
 - [ ] `SD Notify` "항상 허용" 후 블록 종료 알림 실제 확인 ([setup.md 7장](reference/setup.md) 체크리스트)
 
 완료 기준: ⌃⌥1로 오늘 데일리 노트가 열리고, ⌃⌥2 → 50분 후 알림 → 집중 로그에 `start` 줄이 남는다.
