@@ -386,7 +386,7 @@ Focus Guard는 Apple 스크린 타임을 쓰지 않고, 5초마다 macOS에 직�
 
 미결 사항:
 
-- [ ] Stream Deck 모델 확인 (버튼 수·다이얼 유무에 따라 배치 조정)
+- [x] Stream Deck 모델 확인 → MK.2 (15키, 3×5, 다이얼 없음). 배치 조정 불필요
 - [ ] "Tasks"가 Google Tasks인지 Obsidian Tasks 플러그인인지 확정
 - [ ] 회사 Slack에서 개인 API 토큰 발급 가능 여부
 - [ ] 팀 출퇴근·미팅 리듬 파악 후 하루 흐름 시간표 조정

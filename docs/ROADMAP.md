@@ -46,7 +46,7 @@
 
 - [x] 기록 볼트 경로 → `~/workspace/personal/record-vault` (vault 이름 `record-vault`)
 - [x] Tasks → Google Tasks (`https://tasks.google.com`)
-- [ ] Stream Deck 모델 (버튼 수·다이얼)
+- [x] Stream Deck 모델 → MK.2 (15키, 3×5, 다이얼 없음). 설계문서 가정과 같음 (2026-09-28)
 - [ ] 회사 Slack 개인 API 토큰 가능 여부
 - [ ] 팀 리듬 파악 후 하루 시간표 조정
 - [ ] 분기 목표 노트 `Goals/2026-Q4.md` 작성
