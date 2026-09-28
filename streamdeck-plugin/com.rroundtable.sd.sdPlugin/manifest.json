@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.rroundtable.sd",
+  "Name": "streaming-deck",
+  "Author": "RRoundTable",
+  "Description": "bin/sd status를 키에 표시한다: 딥 블록 남은 시간, 휴식, MIT 진행(분).",
+  "Version": "0.1.0.0",
+  "SDKVersion": 3,
+  "Software": { "MinimumVersion": "7.1" },
+  "OS": [{ "Platform": "mac", "MinimumVersion": "13" }],
+  "Nodejs": { "Version": "24" },
+  "CodePath": "bin/plugin.js",
+  "Icon": "imgs/plugin",
+  "Category": "streaming-deck",
+  "CategoryIcon": "imgs/category",
+  "Actions": [
+    {
+      "UUID": "com.rroundtable.sd.status",
+      "Name": "남은 시간",
+      "Icon": "imgs/action",
+      "Tooltip": "딥 블록 남은 시간과 MIT 진행. 누르면 바로 새로고침",
+      "Controllers": ["Keypad"],
+      "UserTitleEnabled": false,
+      "SupportedInMultiActions": false,
+      "States": [{ "Image": "imgs/key", "ShowTitle": false }]
+    }
+  ]
+}

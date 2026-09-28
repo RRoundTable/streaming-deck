@@ -13,6 +13,7 @@ flowchart TD
     B -->|shortcuts run| FM[단축어 SD Focus On/Off<br/>방해금지]
     B -->|~/.focus/notify| HS
     HS -->|bin/sd status| MB[메뉴 막대 짧게 + HUD 전체 문구]
+    SDP[Stream Deck 플러그인<br/>streamdeck-plugin/] -->|bin/sd status --short| KEY[Stream Deck 키<br/>남은 시간·MIT 진행]
     F -.later.-> G[Focus Guard 데몬]
 ```
 
@@ -27,6 +28,7 @@ flowchart TD
 | 상태 | `~/.focus/state.json` | — |
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
 | 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
+| Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 키 화면을 그린다. 트리거는 여전히 Hotkey | adr/005-streamdeck-display-plugin |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
 
@@ -38,6 +40,7 @@ streaming-deck/
 ├── bin/sd           # 모든 동작의 진입점 (start-day, deep, deep25, shutdown)
 ├── bin/setup        # 설치: 볼트·상태 폴더·Hammerspoon 설정 (멱등, 덮어쓰기 없음)
 ├── hammerspoon/sd.lua  # 앱 계층: 단축키, 메뉴 막대, HUD, 알림
+├── streamdeck-plugin/  # Stream Deck 표시 전용 플러그인 (TypeScript, npm run build → *.sdPlugin/bin/plugin.js)
 ├── vault-template/  # 기록 볼트 뼈대 (템플릿, Inbox, Goals, .obsidian 설정)
 ├── docs/            # GOAL, ROADMAP, SPEC, ARCHITECTURE, reference/design.md
 └── README.md
@@ -47,7 +50,7 @@ streaming-deck/
 
 ## Import Rules
 
-- `state.json`은 `bin/sd`만 쓰고 해석한다. Hammerspoon은 `bin/sd status` 출력과 `~/.focus/notify`만 쓰고 state.json을 직접 읽지 않는다. Focus Guard는 state.json을 읽기만 한다.
+- `state.json`은 `bin/sd`만 쓰고 해석한다. Hammerspoon은 `bin/sd status` 출력과 `~/.focus/notify`만 쓰고 state.json을 직접 읽지 않는다. Stream Deck 플러그인도 `bin/sd status --short` 출력만 읽고, `~/.focus`는 갱신 신호로만 감시한다. Focus Guard는 state.json을 읽기만 한다.
 
 ## Key Patterns
 

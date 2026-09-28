@@ -30,6 +30,18 @@ if [[ -d /Applications/Hammerspoon.app ]]; then
 else
   print "✗ Hammerspoon 없음: brew install --cask hammerspoon 후 bin/setup 재실행"
 fi
+# Stream Deck 표시 플러그인(adr/005): 빌드 후 Stream Deck 앱 플러그인 폴더에 링크
+PLUGIN=$REPO/streamdeck-plugin
+if [[ -d "/Applications/Elgato Stream Deck.app" ]] && command -v npm >/dev/null; then
+  if (cd $PLUGIN && npm ci --silent && npm run -s build >/dev/null 2>&1 && npx streamdeck link com.rroundtable.sd.sdPlugin >/dev/null 2>&1); then
+    print "✓ Stream Deck 플러그인 (처음이면 Stream Deck 앱 재시작 후 '남은 시간' 액션을 키에 놓는다)"
+  else
+    print "✗ Stream Deck 플러그인 빌드 실패: cd $PLUGIN && npm ci && npm run build"
+  fi
+else
+  print "- Stream Deck 플러그인 건너뜀 (Elgato Stream Deck 앱 또는 npm 없음)"
+fi
+
 [[ $VAULT == $HOME/workspace/personal/record-vault ]] ||
   print "! 볼트가 기본 경로가 아님: Hammerspoon이 부르는 sd에는 SD_VAULT가 전달되지 않는다. bin/sd의 VAULT 기본값을 바꾼다."
 

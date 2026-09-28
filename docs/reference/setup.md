@@ -81,9 +81,11 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 |---|---|---|
 | Start Day / Deep 50 / Deep 25 / Shutdown | System → Hotkey | ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0 |
 | 기록 볼트 / round-vault | System → Website (GET request in background 끔) | `obsidian://open?vault=record-vault` / `obsidian://open?vault=round-vault` |
-| 남은 시간 | Stateful Executor(마켓플레이스) → Terminal, Polling | 아래 |
+| 남은 시간 | streaming-deck → 남은 시간 (자체 플러그인, `bin/setup`이 설치) | 설정 없음 |
 
-남은 시간 버튼: Command `<REPO>/bin/sd status --short` (절대 경로), Polling 20초, Title `{{= it.result }}`. 블록 중 `🎯 32m`, 종료 후 `⏰ 블록 종료`, 블록 사이 `📌 75/150m`, Shutdown 후 빈칸. 메뉴 막대와 같은 `sd status`를 읽으므로 블록 시간과 어긋나지 않는다.
+남은 시간 키: 블록 중 빨강 `DEEP 32m`, 종료 후 빨강 `휴식`, 블록 사이 회색 `MIT 75 /150m`, Start Day 전·Shutdown 후 어두운 `sd`. 플러그인이 `bin/sd status --short`를 5초마다, `~/.focus`가 바뀔 때 바로 읽는다. 키를 누르면 즉시 새로고침. 메뉴 막대와 같은 `sd status`를 읽으므로 블록 시간과 어긋나지 않는다.
+
+플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
 
 ## 5. 첫 실행 권한
 
