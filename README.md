@@ -7,7 +7,8 @@
 | 키 | 명령 | 하는 일 |
 |---|---|---|
 | ⌃⌥1 | `bin/sd start-day` | 데일리 노트·오늘 로그 생성 → Google Calendar·Tasks·노트 열기 |
-| ⌃⌥2 | `bin/sd deep [완료 조건]` | 입력창(기본값: 직전 '다음:' 또는 MIT) → 방해금지 → 로그 → Slack·Mail 숨김 → 50분 동안 Discord·KakaoTalk 차단 → 종료 시 방해금지 해제·알림 |
+| ⌃⌥2 | `bin/sd deep [완료 조건]` | 선택창(MIT leaf 항목만. 새로 입력하면 로그에만 기록) → 방해금지 → 로그 → Slack·Mail 숨김 → 50분 동안 Discord·KakaoTalk 차단 → 종료 시 방해금지 해제·알림 |
+| ⌃⌥3 | `bin/sd deep25 [완료 조건]` | ⌃⌥2와 같고 블록 길이만 25분. 로그는 `deep25`, 진행도에 25분 더함 |
 | ⌃⌥0 | `bin/sd shutdown` | 블록 해제·방해금지 해제 → 로그 → 노트 열기 → iTerm2 종료 |
 | | `bin/sd status` | 상태 한 줄 (메뉴 막대·HUD가 표시) |
 

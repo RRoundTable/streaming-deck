@@ -1,9 +1,11 @@
 #!/bin/zsh
-# Stream Deck 업무 시스템 동작. Hammerspoon(hammerspoon/sd.lua)의 ⌃⌥1/2/0이 이 스크립트를 부른다.
+# Stream Deck 업무 시스템 동작. Hammerspoon(hammerspoon/sd.lua)의 ⌃⌥1/2/3/0이 이 스크립트를 부른다.
 #   sd start-day        데일리 노트 생성 → Calendar·Tasks·노트 열기
 #   sd deep [완료 조건]   50분 딥 블록 시작 (인자 없으면 입력창)
+#   sd deep25 [완료 조건] 25분 딥 블록 시작. 나머지는 deep과 같다
 #   sd shutdown         블록 상태 해제 → 데일리 노트 열기 → iTerm2 종료
-#   sd status           현재 상태 한 줄 (Hammerspoon 메뉴 막대·HUD가 표시)
+#   sd status [--short] 현재 상태 한 줄 (Hammerspoon 메뉴 막대·HUD가 표시). --short는 " · " 앞만 (Stream Deck 버튼 제목)
+#   sd tasks            Deep 선택창 후보 "작업<TAB>설명" (Hammerspoon이 표시)
 set -euo pipefail
 
 SELF=${0:A}
@@ -14,7 +16,7 @@ STATE=$STATE_DIR/state.json
 TODAY=$(date +%F)
 NOTE=$VAULT/Daily/$TODAY.md     # 사람이 편집. sd는 생성할 때만 쓴다
 LOG=$VAULT/Logs/$TODAY.md       # sd만 쓴다. 노트에 ![[Logs/날짜]]로 임베드
-DEFAULT_BLOCKS=3                    # MIT에 [N]이 없을 때 목표 딥 블록 수
+DEFAULT_TARGET_MIN=150              # 첫 MIT에 목표가 없을 때 하루 딥 블록 목표(분)
 BREAK_MIN=10                        # 블록 종료 후 ⏰를 보여주는 시간
 HIDDEN_APPS=(Slack Mail)            # 블록 시작 시 숨김
 BLOCKED_APPS=(Discord KakaoTalk)    # 블록 동안 실행 즉시 종료
@@ -56,20 +58,81 @@ append_log() {
   print -r -- "$1" >> $LOG
 }
 
-# 완료 조건 기본값: 오늘 마지막 interrupt의 '다음:', 없으면 MIT 첫 항목.
+# 완료 조건 기본값: 오늘 마지막 interrupt의 '다음:', 없으면 MIT 첫 leaf 항목.
 default_task() {
   local next=$(sed -n 's/^- [0-9:]* interrupt — 다음: //p' $LOG 2>/dev/null | tail -1)
   if [[ -n $next ]]; then print -r -- $next; return; fi
-  awk '/^## /{ in_mit = ($0 == "## MIT") ; next }
-       in_mit && sub(/^- /, "") && $0 != "" { sub(/ *\[[0-9]+\] *$/, ""); print; exit }' $NOTE 2>/dev/null
-  return 0
+  local first=$(mit_items | head -1)
+  split_target "$first"
+  print -r -- "$TEXT"
 }
 
-ask_task() {
+# MIT의 leaf 항목(하위 항목이 없는 항목)만 줄 끝 [N] 그대로 한 줄씩. 들여쓰기는 탭 = 4칸.
+# 예: "- 레포 파악 [2]" 아래 "\t- 문제 확인"이 있으면 "문제 확인"만 나온다.
+mit_items() {
+  awk '/^## /{ in_mit = ($0 == "## MIT"); next }
+       in_mit && /^[ \t]*- / {
+         ind = $0; sub(/- .*/, "", ind); gsub(/\t/, "    ", ind)
+         t = $0; sub(/^[ \t]*- /, "", t)
+         n++; depth[n] = length(ind); text[n] = t
+       }
+       END { for (i = 1; i <= n; i++)
+               if (text[i] !~ /^ *$/ && (i == n || depth[i + 1] <= depth[i])) print text[i] }' $NOTE 2>/dev/null || true
+}
+
+# MIT 줄 끝 목표를 떼어 TEXT와 TARGET(분, 없으면 빈 값)에 넣는다.
+# [150m]은 150분, 예전 표기 [N]은 N × 50분.
+split_target() {  # split_target <MIT 줄>
+  TEXT=${1:-} TARGET=
+  [[ $TEXT =~ ' *\[([0-9]+)(m?)\] *$' ]] || return 0
+  TEXT=${TEXT[1,MBEGIN-1]}
+  [[ -n $match[2] ]] && TARGET=$match[1] || TARGET=$(( match[1] * 50 ))
+}
+
+# 완료한 블록의 분. end deep = 50, end deep25 = 25 (deepN = N분).
+# 작업별: "분<TAB>작업". start 다음에 오는 end만 그 작업의 완료다. shutdown으로 끊긴 블록은 세지 않는다.
+task_minutes() {
+  awk '/^- [0-9:]* start deep[0-9]* — / { cur = $0; sub(/^- [0-9:]* start deep[0-9]* — /, "", cur); next }
+       /^- [0-9:]* end deep[0-9]*$/ {
+         m = $0; sub(/.*end deep/, "", m); if (m == "") m = 50
+         if (cur != "") h[cur] += m; cur = ""; next }
+       /^- [0-9:]* shutdown$/ { cur = "" }
+       END { for (t in h) print h[t] "\t" t }' $LOG 2>/dev/null || true
+}
+
+day_minutes() {  # 오늘 끝낸 블록의 분 합계 (작업과 무관)
+  awk '/^- [0-9:]* end deep[0-9]*$/ { m = $0; sub(/.*end deep/, "", m); s += (m == "" ? 50 : m) }
+       END { print s + 0 }' $LOG 2>/dev/null || print 0
+}
+
+# Deep 선택창 후보: MIT leaf 항목만. 기본값(default_task)이 MIT leaf면 맨 위로 올린다.
+# 새로 입력한 작업은 노트에 쓰지 않는다. start 줄로 로그에만 남고, 후보에는 나오지 않는다.
+cmd_tasks() {
+  local -A minutes target
+  local -a seen
+  local h t line
+  while IFS=$'\t' read -r h t; do [[ -n $t ]] && minutes[$t]=$h; done < <(task_minutes)
+  emit() {  # emit <작업>
+    [[ -n ${1// } ]] && (( ! ${seen[(Ie)$1]} )) || return 0
+    seen+=$1
+    print -r -- "$1"$'\t'"완료 ${minutes[$1]:-0}${target[$1]:+/${target[$1]}}m"
+  }
+  local -a mits=()
+  for line in "${(@f)$(mit_items)}"; do
+    split_target "$line"
+    t=$TEXT; [[ -n $TARGET ]] && target[$t]=$TARGET
+    mits+=$t
+  done
+  t=$(default_task)
+  (( ${mits[(Ie)$t]} )) && emit "$t"
+  for t in $mits; do emit "$t"; done
+}
+
+ask_task() {  # ask_task <분>  (터미널에서 인자 없이 부를 때. Hammerspoon은 선택창을 쓴다)
   osascript -e 'on run argv' \
     -e 'activate' \
-    -e 'text returned of (display dialog "이 블록이 끝나면 무엇이 되어 있나?" default answer (item 1 of argv) with title "Deep 50")' \
-    -e 'end run' "$(default_task)" 2>/dev/null || die "블록 취소됨"
+    -e 'text returned of (display dialog "이 블록이 끝나면 무엇이 되어 있나?" default answer (item 1 of argv) with title (item 2 of argv))' \
+    -e 'end run' "$(default_task)" "Deep $1" 2>/dev/null || die "블록 취소됨"
 }
 
 json_str() { local s=${1//\\/\\\\}; print -rn -- "\"${s//\"/\\\"}\""; }
@@ -110,20 +173,21 @@ cmd_start_day() {
   print "데일리 노트·Calendar·Tasks를 열었습니다. MIT 1개를 적으세요"
 }
 
-cmd_deep() {
-  local minutes=50 task=${1:-}
-  [[ -n $task ]] || task=$(ask_task)
+cmd_deep() {  # cmd_deep <분> [완료 조건]
+  local minutes=$1 task=${2:-}
+  local kind=deep; (( minutes == 50 )) || kind=deep$minutes   # 로그 이름: deep(50분), deep25
+  [[ -n $task ]] || task=$(ask_task $minutes)
   task=${task//$'\n'/ }
   [[ -n ${task// } ]] || die "완료 조건이 비어 있어 블록을 시작하지 않음"
 
   local started=$(date +%FT%T) ends=$(date -v+${minutes}M +%FT%T)
   focus On
-  append_log "- $(date +%H:%M) start deep — $task"
+  append_log "- $(date +%H:%M) start $kind — $task"
   write_state deep $task $started $ends
   clear_distractions
-  nohup $SELF _guard $(date -v+${minutes}M +%s) $started >/dev/null 2>&1 &!
+  nohup $SELF _guard $(date -v+${minutes}M +%s) $started $kind >/dev/null 2>&1 &!
   local until=$(date -v+${minutes}M +%H:%M)
-  print -r -- "Deep 50 시작 ~$until — $task"
+  print -r -- "Deep $minutes 시작 ~$until — $task"
 }
 
 block_active() { grep -qF "\"started\": \"$1\"" $STATE 2>/dev/null }
@@ -131,7 +195,7 @@ block_active() { grep -qF "\"started\": \"$1\"" $STATE 2>/dev/null }
 # 블록 동안 5초마다 BLOCKED_APPS를 종료하고 이탈로 기록한다.
 # 블록이 바뀌거나(started 불일치) 해제되면 조용히 끝난다.
 cmd__guard() {
-  local ends=$1 started=$2 app
+  local ends=$1 started=$2 kind=${3:-deep} app
   while (( $(date +%s) < ends )); do
     sleep 5
     block_active $started || return 0
@@ -144,19 +208,18 @@ cmd__guard() {
   done
   block_active $started || return 0
   focus Off
-  append_log "- $(date +%H:%M) end deep"
+  append_log "- $(date +%H:%M) end $kind"
   notify "블록 종료 — 집중도 1~5를 기록하고 화면 밖에서 쉬세요"
 }
 
 field() { sed -n "s/.*\"$1\": \"\([^\"]*\)\".*/\1/p" $STATE 2>/dev/null }
 
-# MIT 진행: "📌 완료/목표 · MIT". 목표는 MIT 줄 끝 [N], 없으면 DEFAULT_BLOCKS.
+# MIT 진행: "📌 완료/목표m · MIT". 오늘 끝낸 딥 블록의 분 합계 / 첫 MIT의 목표(없으면 DEFAULT_TARGET_MIN).
 status_day() {
   local mit=$(awk '/^## /{ in_mit = ($0 == "## MIT"); next }
                    in_mit && sub(/^- /, "") && $0 != "" { print; exit }' $NOTE 2>/dev/null)
-  local target=$DEFAULT_BLOCKS done_=$(grep -c '^- [0-9:]* end deep$' $LOG 2>/dev/null || true)
-  [[ $mit =~ ' *\[([0-9]+)\] *$' ]] && { target=$match[1]; mit=${mit[1,MBEGIN-1]}; }
-  print -r -- "📌 ${done_:-0}/$target · ${mit:-MIT를 적으세요}"
+  split_target "$mit"
+  print -r -- "📌 $(day_minutes)/${TARGET:-$DEFAULT_TARGET_MIN}m · ${TEXT:-MIT를 적으세요}"
 }
 
 # 출력 없음 = 표시 없음 (Shutdown 후, 다른 날짜의 상태)
@@ -190,9 +253,11 @@ cmd_shutdown() {
 
 case ${1:-} in
   start-day) cmd_start_day ;;
-  deep)      shift; cmd_deep "${1:-}" ;;
+  deep)      shift; cmd_deep 50 "${1:-}" ;;
+  deep25)    shift; cmd_deep 25 "${1:-}" ;;
   shutdown)  cmd_shutdown ;;
-  status)    cmd_status ;;
+  status)    if [[ ${2:-} == --short ]]; then cmd_status | sed 's/ · .*//'; else cmd_status; fi ;;
+  tasks)     cmd_tasks ;;
   _guard)    shift; cmd__guard "$@" ;;
-  *)         die "사용법: sd start-day | deep [완료 조건] | shutdown | status" ;;
+  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | tasks" ;;
 esac

@@ -6,8 +6,8 @@ macOS 앱 계층은 Hammerspoon 하나다(adr/004). 단축키·메뉴 막대·HU
 
 ```mermaid
 flowchart TD
-    K[⌃⌥1/2/0<br/>나중에 Stream Deck Hotkey] --> HS[Hammerspoon<br/>hammerspoon/sd.lua]
-    HS -->|start-day, deep, shutdown| B[bin/sd]
+    K[⌃⌥1/2/3/0<br/>Stream Deck Hotkey] --> HS[Hammerspoon<br/>hammerspoon/sd.lua]
+    HS -->|start-day, deep, deep25, shutdown| B[bin/sd]
     B --> O[Obsidian 기록 볼트<br/>Daily/ 생성, Logs/ append]
     B --> F[~/.focus/state.json]
     B -->|shortcuts run| FM[단축어 SD Focus On/Off<br/>방해금지]
@@ -21,7 +21,7 @@ flowchart TD
 | Layer | Choice | ADR |
 |-------|--------|-----|
 | 앱 계층 | Hammerspoon (`hammerspoon/sd.lua`): 단축키, 메뉴 막대, HUD, 알림 | adr/004-hammerspoon-single-app |
-| 트리거 | Hammerspoon 단축키 ⌃⌥1/2/0 → 나중에 Stream Deck Hotkey | adr/004-hammerspoon-single-app |
+| 트리거 | Hammerspoon 단축키 ⌃⌥1/2/3/0, Stream Deck은 Hotkey 액션으로 같은 키 | adr/004-hammerspoon-single-app |
 | 집중 모드 | 단축어 `SD Focus On`/`SD Focus Off` (`bin/sd`가 `shortcuts run`) | adr/004-hammerspoon-single-app |
 | 기록 | Obsidian 기록 볼트 (`~/workspace/personal/record-vault`), 코어 Daily Notes·Templates. 플러그인 없음 | — |
 | 상태 | `~/.focus/state.json` | — |
@@ -35,7 +35,7 @@ flowchart TD
 ```
 streaming-deck/
 ├── .claude/skills/setup-streaming-deck/  # 새 Mac 설치 절차 (Claude Code skill)
-├── bin/sd           # 모든 동작의 진입점 (start-day, deep, shutdown)
+├── bin/sd           # 모든 동작의 진입점 (start-day, deep, deep25, shutdown)
 ├── bin/setup        # 설치: 볼트·상태 폴더·Hammerspoon 설정 (멱등, 덮어쓰기 없음)
 ├── hammerspoon/sd.lua  # 앱 계층: 단축키, 메뉴 막대, HUD, 알림
 ├── vault-template/  # 기록 볼트 뼈대 (템플릿, Inbox, Goals, .obsidian 설정)
