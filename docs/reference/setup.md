@@ -122,4 +122,4 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 - [ ] 블록 중 Discord 실행 → 5초 내 종료, "딥 블록 중" 알림, `distraction` 줄
 - [ ] 블록 중 메뉴 막대 `🎯 Nm`, 화면 오른쪽 아래 빨간 HUD에 완료 조건 전체
 - [ ] 50분 후 "블록 종료" 알림, `end deep` 줄, 달 아이콘 꺼짐, `⏰` → 10분 뒤 `📌`
-- [ ] ⌃⌥0 → 방해금지 해제, `shutdown` 줄, 노트 열림, iTerm2 종료, 알림, 메뉴 막대·HUD 사라짐
+- [ ] ⌃⌥0 → 방해금지 해제, `shutdown` 줄, 노트 열림, 알림, 메뉴 막대·HUD 사라짐

@@ -3,7 +3,7 @@
 #   sd start-day        데일리 노트 생성 → Calendar·Tasks·노트 열기
 #   sd deep [완료 조건]   50분 딥 블록 시작 (인자 없으면 입력창)
 #   sd deep25 [완료 조건] 25분 딥 블록 시작. 나머지는 deep과 같다
-#   sd shutdown         블록 상태 해제 → 데일리 노트 열기 → iTerm2 종료
+#   sd shutdown         블록 상태 해제 → 데일리 노트 열기
 #   sd status [--short] 현재 상태 한 줄 (Hammerspoon 메뉴 막대·HUD가 표시). --short는 " · " 앞만 (Stream Deck 버튼 제목)
 #   sd tasks            Deep 선택창 후보 "작업<TAB>설명" (Hammerspoon이 표시)
 set -euo pipefail
@@ -247,7 +247,6 @@ cmd_shutdown() {
   focus Off
   append_log "- $(date +%H:%M) shutdown"
   open_note
-  pgrep -xq iTerm2 && quit_app_async iTerm2
   print "Shutdown 완료 — 회고와 내일 첫 작업을 적으세요"
 }
 
