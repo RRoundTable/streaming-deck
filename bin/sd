@@ -5,6 +5,7 @@
 #   sd deep25 [완료 조건] 25분 딥 블록 시작. 나머지는 deep과 같다
 #   sd shutdown         블록 상태 해제 → 데일리 노트 열기
 #   sd status [--short] 현재 상태 한 줄 (Hammerspoon 메뉴 막대·HUD가 표시). --short는 " · " 앞만 (Stream Deck 버튼 제목)
+#   sd timer            진행 중인 블록의 "끝나는 시각(epoch) 전체 길이(초)" (HUD의 초 단위 타이머용)
 #   sd tasks            Deep 선택창 후보 "작업<TAB>설명" (Hammerspoon이 표시)
 set -euo pipefail
 
@@ -242,6 +243,14 @@ cmd_status() {
   return 0
 }
 
+# 블록 중이 아니면 출력 없음. 블록 중인지는 status(🎯)와 같은 기준(끝나는 시각이 아직 안 지남)이다.
+cmd_timer() {
+  [[ $(field mode) == deep ]] || return 0
+  local started=$(date -j -f %FT%T $(field started) +%s) ends=$(date -j -f %FT%T $(field ends) +%s)
+  (( ends > $(date +%s) )) && print "$ends $(( ends - started ))"
+  return 0
+}
+
 cmd_shutdown() {
   write_state off
   focus Off
@@ -256,7 +265,8 @@ case ${1:-} in
   deep25)    shift; cmd_deep 25 "${1:-}" ;;
   shutdown)  cmd_shutdown ;;
   status)    if [[ ${2:-} == --short ]]; then cmd_status | sed 's/ · .*//'; else cmd_status; fi ;;
+  timer)     cmd_timer ;;
   tasks)     cmd_tasks ;;
   _guard)    shift; cmd__guard "$@" ;;
-  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | tasks" ;;
+  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | timer | tasks" ;;
 esac

@@ -12,7 +12,7 @@ flowchart TD
     B --> F[~/.focus/state.json]
     B -->|shortcuts run| FM[단축어 SD Focus On/Off<br/>방해금지]
     B -->|~/.focus/notify| HS
-    HS -->|bin/sd status| MB[메뉴 막대 짧게 + HUD 전체 문구]
+    HS -->|bin/sd status, timer| MB[메뉴 막대 짧게 + HUD 전체 문구·블록 타이머]
     SDP[Stream Deck 플러그인<br/>streamdeck-plugin/] -->|bin/sd status --short| KEY[Stream Deck 키<br/>남은 시간·MIT 진행]
     F -.later.-> G[Focus Guard 데몬]
 ```
@@ -27,7 +27,7 @@ flowchart TD
 | 기록 | Obsidian 기록 볼트 (`~/workspace/personal/record-vault`), 코어 Daily Notes·Templates. 플러그인 없음 | — |
 | 상태 | `~/.focus/state.json` | — |
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
-| 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
+| 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다. 블록 중 HUD는 `bin/sd timer`의 끝나는 시각으로 초 단위 타이머를 그린다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
 | Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 키 화면을 그린다. 트리거는 여전히 Hotkey | adr/005-streamdeck-display-plugin |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
