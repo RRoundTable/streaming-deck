@@ -11,6 +11,7 @@
 | Hammerspoon (`hammerspoon/sd.lua`) | ⌃⌥1/2/3/0 단축키, 메뉴 막대, 화면 구석 HUD, 알림 | 저장소 (init.lua가 불러옴) |
 | `bin/sd` | 데일리 노트 생성, 집중 로그, 선택창 후보(`sd tasks`), `~/.focus/state.json`, 앱 숨기기·종료, 블록 중 앱 차단, 방해금지 on/off 호출, 상태 문구 | 저장소 |
 | 단축어 `SD Focus On`/`SD Focus Off` | 방해금지 켜기·끄기 (macOS에 CLI가 없어서) | macOS |
+| 캘린더 읽기 앱 `agenda/SDAgenda.app` | macOS 캘린더의 오늘 남은 일정을 `~/.focus/agenda.tsv`에 쓴다 (adr/006) | 저장소 (`bin/setup`이 빌드) |
 
 ```
 ⌃⌥2 → Hammerspoon → bin/sd deep
@@ -84,10 +85,15 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | Start Day / Deep 50 / Deep 25 / Shutdown | System → Hotkey | ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0 |
 | 기록 볼트 / round-vault | System → Website (GET request in background 끔) | `obsidian://open?vault=record-vault` / `obsidian://open?vault=round-vault` |
 | 남은 시간 | streaming-deck → 남은 시간 (자체 플러그인, `bin/setup`이 설치) | 설정 없음 |
+| 캘린더 | streaming-deck → 캘린더 (같은 플러그인) | 설정 없음 |
 
 남은 시간 키: 블록 중 빨강 `DEEP 32m`, 종료 후 빨강 `휴식`, 블록 사이 회색 `MIT 1 /6`, Start Day 전·Shutdown 후 어두운 `sd`. 플러그인이 `bin/sd status --short`를 5초마다, `~/.focus`가 바뀔 때 바로 읽는다. 키를 누르면 즉시 새로고침. 메뉴 막대와 같은 `sd status`를 읽으므로 블록 시간과 어긋나지 않는다.
 
-플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
+캘린더 키: 진행 중이면 초록 `지금` + 끝나는 시각, 50분 이내에 시작하면 주황 `42m`(Deep 50이 안 들어감), 그보다 뒤면 파랑 `14:00`, 오늘 남은 미팅이 없으면 어두운 바탕에 날짜. 아랫줄은 제목이다. 누르면 Google Calendar 오늘 보기가 열린다. 플러그인이 `bin/sd agenda`를 1분마다 읽고, `sd`는 5분마다 캘린더 읽기 앱을 다시 돌린다.
+
+캘린더 키 준비(1회): 시스템 설정 → 인터넷 계정 → 계정 추가 → Google에서 일정이 있는 계정을 넣고 "캘린더"를 켠다. 캘린더 앱에 일정이 보이면 터미널에서 `bin/sd agenda`를 한 번 실행해 권한 창을 허용한다. Google에서 바꾼 일정은 Mac에 동기화된 뒤(몇 분) 키에 반영된다.
+
+플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. `restart`가 "Restarted"라고 나와도 플러그인이 그대로면 개발자 모드가 꺼진 것이다: `npx streamdeck dev`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
 
 ## 5. 첫 실행 권한
 
@@ -96,6 +102,7 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | Hammerspoon 알림 | 첫 알림 | 허용 |
 | Hammerspoon이 System Events 제어 | 앱 숨기기 처음 사용 | 허용 |
 | "계속하겠습니까" (알림 형태) | `SD Focus On/Off` 첫 호출 | 옵션 → 항상 허용 |
+| SDAgenda가 캘린더에 접근 | `bin/sd agenda` 첫 호출, 읽기 앱을 다시 빌드한 뒤 | 전체 접근 허용 |
 
 ## 6. 문제 해결
 
@@ -110,6 +117,9 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 완료 조건 한글이 `ㄴㅗㅌㅡ`처럼 저장됨 | osascript 입력창에서 한글 IME 조합 실패 (간헐적) | 단축키는 Hammerspoon 선택창을 쓴다. osascript 입력창은 터미널에서 `sd deep`을 인자 없이 부를 때만 뜬다 |
 | 로그 줄이 `D@@`처럼 깨짐 | 노트 편집 중 sd가 같은 파일에 써서 Obsidian 병합 충돌 | 로그를 `Logs/`로 분리 (adr/002) |
 | 블록 중 카톡·Discord가 다시 켜짐 | 숨김은 ⌘Tab으로 되돌릴 수 있음 | `BLOCKED_APPS`가 블록 동안 5초마다 종료 |
+| 캘린더 키에 `?` `캘린더 권한 없음` | SDAgenda의 캘린더 권한이 거부됨 | 시스템 설정 → 개인정보 보호 및 보안 → 캘린더 → SDAgenda 전체 접근 |
+| 캘린더 키에 `?` `읽기 앱 없음` | `agenda/SDAgenda.app`이 빌드되지 않음 | `xcode-select --install` 후 `bin/setup` |
+| 캘린더 키가 `미팅 없음`인데 일정이 있음 | 계정이 macOS 캘린더에 없거나 아직 동기화 전 | 캘린더 앱에서 일정이 보이는지 확인. 종일·거절한 일정은 원래 안 나온다 |
 | Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
 | 메뉴 막대·HUD 시간이 몇 분 뒤 멈춤 | 모듈 참조가 없어 가비지 컬렉션이 타이머를 멈춤 | `sd.lua`가 `_G.streamingDeck`에 보관 (수정됨) |
 | ⌃⌥ 키를 눌렀는데 예전 동작(단축어 알림 표시 등) | 예전 SD 단축어가 키를 먼저 가져감 | 예전 단축어 삭제 (3장) |
