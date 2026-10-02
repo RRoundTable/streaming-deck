@@ -1,7 +1,7 @@
 // 키 화면: `sd status --short` 한 줄 → 144×144 SVG data URI. 판단은 sd가 하고 여기서는 모양만 정한다.
 //   🎯 32m        → 빨강, "32m" / DEEP
 //   ⏰ 블록 종료   → 빨강, "휴식" / 블록 종료
-//   📌 75/150m    → 회색, "75" "/150m" / MIT
+//   📌 1/6        → 회색, "1" "/6" / MIT
 //   (빈 출력)      → 어두운 회색 "sd" (Start Day 전, Shutdown 후)
 const RED = "#E6474C";
 const GRAY = "#262626";

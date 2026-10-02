@@ -2,6 +2,8 @@
 --   ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0   bin/sd start-day / deep / deep25 / shutdown → 결과(stdout, 실패 시 stderr)를 알림
 --   ⌃⌥2 / ⌃⌥3은 먼저 선택창: bin/sd tasks 후보(MIT leaf 항목)에서 고르거나 새로 입력, Esc는 취소
 --   bin/sd status       메뉴 막대(" · " 앞부분만) + 화면 오른쪽 아래 HUD(전체 문구)
+--   메뉴 막대를 클릭하면 HUD가 꺼지고 켜진다. 꺼 두어도 블록을 시작하면 다시 켜진다
+--   HUD를 클릭하면(끌지 않고) 접히고 펴진다. 접으면 블록 중에는 링 + MM:SS만, 그 밖에는 " · " 앞부분만
 --   bin/sd timer        블록 중 HUD는 줄어드는 링 + MM:SS + 완료 조건. 1초마다 다시 그린다
 --   HUD는 반투명이다. 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀐다. 위치·크기는 hs.settings에 남는다
 --   포인터를 올리면 모서리에 손잡이(사선)가 보이고, 모서리 위에서는 진해진다
@@ -27,6 +29,8 @@ local sd, menubar, canvas, chooser, ticker, drag, renderHud
 local hudText, block = "", nil       -- block = { ends = epoch, total = 초, task = 완료 조건 } (블록 중에만)
 local hudPos = hs.settings.get(POS_KEY)  -- 끌어 옮긴 HUD의 왼쪽 위 좌표. 없으면 화면 오른쪽 아래
 local scale = hs.settings.get(SCALE_KEY) or 1
+local hudOn = true                       -- 메뉴 막대 클릭으로 끄고 켠다. 블록이 시작되면 켜진다
+local compact = false                    -- HUD 클릭으로 접고 편다
 local hover                              -- 포인터 위치: nil(HUD 밖) | "hud" | "grip"(크기 조절 모서리)
 
 local function trim(s) return ((s or ""):gsub("%s+$", "")) end
@@ -44,7 +48,7 @@ local function renderMenubar(text)
   menubar:returnToMenuBar()
   local short = text:match("^(.-) · ") or text
   menubar:setTitle(hs.styledtext.new(short, isFocus(text) and { color = RED } or {}))
-  menubar:setMenu({ { title = text, disabled = true } })
+  menubar:setTooltip(text)
 end
 
 local function styled(text, font, size, align)
@@ -77,13 +81,14 @@ local function onGrip(x, y)
 end
 
 -- 마우스 버튼을 누르고 있는 동안 HUD가 포인터를 따라간다. 오른쪽 아래 모서리에서 시작하면
--- 왼쪽 위를 고정하고 크기를 바꾼다. 떼면 위치와 크기를 저장한다.
+-- 왼쪽 위를 고정하고 크기를 바꾼다. 떼면 위치와 크기를 저장한다. 움직이지 않고 떼면 클릭이다: 접거나 편다.
 local function startDrag(x, y)
   local from, start, fromScale = canvas:frame(), hs.mouse.absolutePosition(), scale
-  local resizing = onGrip(x, y)
+  local resizing, moved = onGrip(x, y), false
   if resizing then hudPos = { x = from.x, y = from.y } end
   drag = hs.timer.doWhile(function()
     if hs.mouse.getButtons().left then return true end
+    if not resizing and not moved then compact = not compact; renderHud() end
     hs.settings.set(POS_KEY, hudPos)
     hs.settings.set(SCALE_KEY, scale)
     return false
@@ -93,6 +98,7 @@ local function startDrag(x, y)
     if resizing then
       scale = math.max(MIN_SCALE, math.min(fromScale * (from.w + dx) / from.w, MAX_SCALE))
     elseif dx ~= 0 or dy ~= 0 then
+      moved = true
       hudPos = { x = from.x + dx, y = from.y + dy }
     end
     renderHud()
@@ -106,7 +112,7 @@ local function onMouse(_, event, _, x, y)
 end
 
 function renderHud()
-  if hudText == "" then
+  if hudText == "" or not hudOn then
     if canvas then canvas:hide() end
     return
   end
@@ -115,7 +121,9 @@ function renderHud()
   local elements = { { type = "rectangle", action = "fill", roundedRectRadii = { xRadius = radius, yRadius = radius },
                        fillColor = { red = color.red, green = color.green, blue = color.blue,
                                      white = color.white, alpha = HUD_ALPHA } } }
-  local label = styled(block and block.task or hudText, ".AppleSystemUIFont", FONT_SIZE * scale)
+  local text = block and block.task or hudText
+  if compact then text = block and "" or (hudText:match("^(.-) · ") or hudText) end
+  local label = styled(text, ".AppleSystemUIFont", FONT_SIZE * scale)
   local size = hs.drawing.getTextDrawingSize(label)
   local h = math.max(size.h, block and ringD or 0) + pad
   local x = pad
@@ -136,9 +144,12 @@ function renderHud()
                              frame = { x = x, y = (h - timeH) / 2, w = ringD, h = timeH } })
     x = x + ringD + pad
   end
-  table.insert(elements, { type = "text", text = label,
-                           frame = { x = x, y = (h - size.h) / 2, w = size.w + 2, h = size.h } })
-  local w = x + size.w + pad
+  local w = x
+  if text ~= "" then
+    table.insert(elements, { type = "text", text = label,
+                             frame = { x = x, y = (h - size.h) / 2, w = size.w + 2, h = size.h } })
+    w = x + size.w + pad
+  end
   if hover then
     for _, d in ipairs({ 5, 9, 13 }) do  -- 오른쪽 아래 모서리의 사선 손잡이
       table.insert(elements, { type = "segments", action = "stroke", strokeWidth = 1.5,
@@ -161,6 +172,7 @@ function renderHud()
 end
 
 local function showHud(text, timer)
+  if timer and not block then hudOn = true end
   hudText, block = text, timer
   if block then ticker:start() else ticker:stop() end
   renderHud()
@@ -239,6 +251,7 @@ function M.start(repo)
   sd = repo .. "/bin/sd"
   hs.menuIcon(false)  -- 노치 옆 공간 절약. 설정 다시 읽기: Hammerspoon 앱을 열어 콘솔에서 hs.reload()
   menubar = hs.menubar.new()
+  menubar:setClickCallback(function() hudOn = not hudOn; renderHud() end)
   M.hotkeys = {}
   for key, cmd in pairs(HOTKEYS) do
     table.insert(M.hotkeys, hs.hotkey.bind(HOTKEY_MODS, key, function()

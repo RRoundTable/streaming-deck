@@ -1,7 +1,7 @@
 # {{date:YYYY-MM-DD ddd}}
 
 ## MIT
-- 
+- [ ] 
 
 ## 오늘 하지 않을 것
 - 

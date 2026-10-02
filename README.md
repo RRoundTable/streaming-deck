@@ -13,7 +13,7 @@
 | | `bin/sd status` | 상태 한 줄 (메뉴 막대·HUD가 표시) |
 | | `bin/sd timer` | 진행 중인 블록의 끝나는 시각·길이 (HUD 타이머가 표시) |
 
-- 키, 메뉴 막대(`🎯 32m`), 화면 오른쪽 아래 HUD(전체 문구, 블록 중에는 줄어드는 링 + `MM:SS`), 알림은 Hammerspoon(`hammerspoon/sd.lua`)이 맡는다.
+- 키, 메뉴 막대(`🎯 32m`), 화면 오른쪽 아래 HUD(전체 문구, 블록 중에는 줄어드는 링 + `MM:SS`. 블록 사이에는 `📌 1/6 · 다음 MIT`로 체크한 MIT 수), 알림은 Hammerspoon(`hammerspoon/sd.lua`)이 맡는다.
 - 방해금지는 단축어 `SD Focus On`/`SD Focus Off`를 `bin/sd`가 부른다.
 - 기록 볼트: `~/workspace/personal/record-vault`. 데일리 노트는 `Daily/`, 로그는 `Logs/`(노트에 임베드).
 

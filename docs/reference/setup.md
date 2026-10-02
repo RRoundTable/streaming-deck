@@ -62,11 +62,12 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 상태 | 메뉴 막대 | HUD (전체 문구) |
 |---|---|---|
 | Start Day 전, Shutdown 후, 날짜가 바뀜 | 없음 | 없음 |
-| Start Day 이후, 블록 사이 | `📌 75/150m` | `📌 75/150m · MIT` (오늘 끝낸 딥 블록 분 / 첫 MIT의 목표 분, 없으면 150), 회색 |
+| Start Day 이후, 블록 사이 | `📌 1/6` | `📌 1/6 · 다음 MIT` (체크한 MIT 수 / 전체 MIT 수 + 다음 미완료 항목), 회색 |
 | 딥 블록 중 | `🎯 32m` (빨강) | 줄어드는 링 + `32:15` + 완료 조건, 빨강 |
 | 블록 종료 후 10분 | `⏰ 블록 종료` | `⏰ 블록 종료 · 집중도를 기록하고 쉬세요` → 이후 `📌` |
 
-- MIT 줄 끝에 목표 분을 적는다: `- 메모리 모듈 설계 [100m]`. 예전 표기 `[2]`는 100분으로 읽는다. Deep 선택창에는 MIT의 leaf 항목(하위 항목이 없는 것)만 나온다. 하위 항목이 있는 상위 항목은 목록에서 빠진다. 목표는 빠지고 `완료 75/100m`처럼 작업별 진행이 붙는다.
+- 메뉴 막대를 클릭하면 HUD가 꺼지고 켜진다(꺼 두어도 블록을 시작하면 다시 켜진다). HUD를 끌지 않고 클릭하면 접히고 펴진다: 접으면 블록 중에는 링 + 남은 시간만, 그 밖에는 `📌 1/6`만 남는다. 전체 문구는 메뉴 막대에 포인터를 올리면 보인다.
+- MIT는 체크박스로 적는다: `- [ ] 메모리 모듈 설계 [100m]`. Obsidian에서 체크하면 `📌`의 완료 수가 오른다(최대 20초 뒤). 줄 끝의 목표 분은 선택이고 Deep 선택창의 작업별 진행에만 쓴다. 예전 표기 `[2]`는 100분으로 읽는다. Deep 선택창에는 미완료 MIT의 leaf 항목(하위 항목이 없는 것)만 나온다. 하위 항목이 있는 상위 항목은 목록에서 빠진다. 목표는 빠지고 `완료 75/100m`처럼 작업별 진행이 붙는다.
 - 선택창에서 목록에 없는 작업을 입력하면 `＋ 새 작업`으로 시작된다. 노트 MIT에는 쓰지 않고 로그의 `start` 줄로만 남는다. 선택창에 다시 나오게 하려면 노트 MIT에 직접 적는다.
 - HUD는 반투명이다. 끌면 옮겨지고, 오른쪽 아래 모서리를 끌면 크기가 바뀐다. 포인터를 올리면 그 모서리에 사선 손잡이가 보이고, 모서리 위에서는 진해진다. 위치와 크기는 Hammerspoon 설정(`hs.settings`)에 남는다. 처음 상태로 돌리려면 콘솔에서 `hs.settings.clear("streamingDeck.hudPos"); hs.settings.clear("streamingDeck.hudScale"); hs.reload()`.
 - 기본 위치·투명도·색·갱신 주기·단축키는 `hammerspoon/sd.lua` 상단 상수. 바꾼 뒤 Hammerspoon 앱을 열어 콘솔에서 `hs.reload()`.
@@ -84,7 +85,7 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 기록 볼트 / round-vault | System → Website (GET request in background 끔) | `obsidian://open?vault=record-vault` / `obsidian://open?vault=round-vault` |
 | 남은 시간 | streaming-deck → 남은 시간 (자체 플러그인, `bin/setup`이 설치) | 설정 없음 |
 
-남은 시간 키: 블록 중 빨강 `DEEP 32m`, 종료 후 빨강 `휴식`, 블록 사이 회색 `MIT 75 /150m`, Start Day 전·Shutdown 후 어두운 `sd`. 플러그인이 `bin/sd status --short`를 5초마다, `~/.focus`가 바뀔 때 바로 읽는다. 키를 누르면 즉시 새로고침. 메뉴 막대와 같은 `sd status`를 읽으므로 블록 시간과 어긋나지 않는다.
+남은 시간 키: 블록 중 빨강 `DEEP 32m`, 종료 후 빨강 `휴식`, 블록 사이 회색 `MIT 1 /6`, Start Day 전·Shutdown 후 어두운 `sd`. 플러그인이 `bin/sd status --short`를 5초마다, `~/.focus`가 바뀔 때 바로 읽는다. 키를 누르면 즉시 새로고침. 메뉴 막대와 같은 `sd status`를 읽으므로 블록 시간과 어긋나지 않는다.
 
 플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
 
@@ -115,9 +116,9 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 
 ## 7. 동작 확인 체크리스트
 
-- [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림, 메뉴 막대 `📌 0/150m`, 회색 HUD
+- [ ] ⌃⌥1 → 데일리 노트·Calendar·Tasks가 열리고 알림, 메뉴 막대 `📌 0/0`, 회색 HUD. MIT를 체크박스로 적으면 `📌 0/N`, 체크하면 완료 수 증가
 - [ ] ⌃⌥2 → 선택창에서 MIT 선택 → "Deep 50 시작 ~HH:MM" 알림, 달 아이콘, 로그(`Logs/`)에 `start deep` 줄
-- [ ] ⌃⌥3 → 선택창 제목 "Deep 25" → "Deep 25 시작 ~HH:MM" 알림, 25분 후 `end deep25` 줄, 📌 완료가 25분 증가
+- [ ] ⌃⌥3 → 선택창 제목 "Deep 25" → "Deep 25 시작 ~HH:MM" 알림, 25분 후 `end deep25` 줄, 다음 선택창에서 그 작업의 완료가 25분 증가
 - [ ] ⌃⌥2 → Esc → "블록 취소됨" 알림, 방해금지 안 켜짐
 - [ ] ⌃⌥2 → 목록에 없는 글자 입력 → `＋ 새 작업` 선택 → 로그에 `start deep — 새 작업`, 노트 MIT는 그대로
 - [ ] 블록 중 Discord 실행 → 5초 내 종료, "딥 블록 중" 알림, `distraction` 줄
