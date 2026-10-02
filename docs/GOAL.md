@@ -21,4 +21,4 @@
 - 스마트폰 연동 (물리적으로 분리한다)
 - 회고·주간 리뷰 답변, 집중도 점수의 자동 생성 — 숫자 집계만 자동, 의미는 사람이 쓴다
 - Claude API 직접 호출 (LLM 판정은 `claude -p --model haiku` 헤드리스만)
-- Stream Deck 트리거 플러그인 개발 — 버튼은 Hotkey 액션으로 같은 단축키만 연결 (표시 전용 플러그인은 adr/005)
+- Stream Deck 트리거 플러그인 개발 — 버튼은 Hotkey 액션으로 같은 단축키만 연결 (표시 전용 플러그인은 adr/005. 예외: 캘린더 키는 누르면 Google Calendar를 연다, adr/006)
