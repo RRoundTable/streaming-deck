@@ -65,7 +65,7 @@ streaming-deck/
 - **로그 파일은 데일리 노트와 분리한다** (adr/002-separate-log-file): `bin/sd`는 `Logs/YYYY-MM-DD.md`에 줄을 덧붙이기만 하고, 데일리 노트는 `## 집중 로그` 아래 `![[Logs/YYYY-MM-DD]]`로 임베드해 보여준다. 사람이 편집하는 파일과 스크립트가 쓰는 파일이 달라 Obsidian 편집 중 동시 쓰기 충돌이 생기지 않는다. `bin/sd`는 데일리 노트를 만들 때만 쓰고, 이후에는 MIT를 읽기만 한다.
 - **알림은 Hammerspoon이 띄운다.** 단축키로 부른 명령은 stdout(성공)·stderr(실패)를 알림으로 띄운다. 백그라운드 `_guard`는 `~/.focus/notify`에 문구를 쓰고, Hammerspoon이 `~/.focus`를 감시하다 읽어서 띄운 뒤 지운다(Hammerspoon이 꺼져 있으면 osascript).
 - **집중 모드 on/off만 단축어에 남는다.** macOS에 CLI가 없기 때문. `bin/sd`가 완료 조건 검증 후 `SD Focus On`, 블록 종료·Shutdown 때 `SD Focus Off`를 부른다. 블록과 방해금지 시간이 정확히 일치한다.
-- **캘린더는 macOS 캘린더를 거쳐 읽는다** (adr/006-streamdeck-calendar-key): 회사 Google 계정을 시스템 설정 → 인터넷 계정에 추가하고, 읽기 앱이 EventKit으로 읽는다. 앱 번들로 두는 이유는 캘린더 권한을 부른 쪽(Hammerspoon, Stream Deck)이 아니라 자기 이름으로 받기 위해서다. `bin/sd agenda`가 5분마다 `open`으로 실행한다. 대가: Google에서 바꾼 일정이 Mac에 오기까지 몇 분 늦는다.
+- **캘린더는 macOS 캘린더를 거쳐 읽는다** (adr/006-streamdeck-calendar-key): 회사 Google 계정을 시스템 설정 → 인터넷 계정에 추가하고, 읽기 앱이 EventKit으로 읽는다. 앱 번들로 두는 이유는 캘린더 권한을 부른 쪽(Hammerspoon, Stream Deck)이 아니라 자기 이름으로 받기 위해서다. `bin/sd agenda`가 불릴 때 `open`으로 실행한다(45초 안에 다시 불리면 앞의 결과를 쓴다. 키는 1분마다 부른다). 대가: Google에서 바꾼 일정이 Mac에 오기까지 몇 분 늦는다.
 
 ## Constraints
 

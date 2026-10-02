@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { agendaFace, face, svg, type Face } from "./face.js";
 
 const STATUS_POLL_MS = 5_000; // 분 단위 표시라 충분하다. 매번 다시 그려 전송 누락도 덮는다
-const AGENDA_POLL_MS = 60_000; // 남은 분이 바뀌는 주기. 일정 자체는 sd가 5분마다 다시 읽는다
+const AGENDA_POLL_MS = 60_000; // 남은 분이 바뀌는 주기. sd가 그때마다 일정도 다시 읽는다
 const FOCUS_DIR = join(homedir(), ".focus");
 
 // 이 파일은 <repo>/streamdeck-plugin/com.rroundtable.sd.sdPlugin/bin/plugin.js.
