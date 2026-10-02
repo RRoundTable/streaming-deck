@@ -42,7 +42,7 @@
 - [ ] Focus Guard 데몬: 브라우저 URL·회색지대 판정 (알림 전용 → 오탐 확인 후 차단 목록 탭 닫기)
 - [ ] Stream Deck 도착 시 Hotkey 액션으로 연결, 페이지·집중도 폴더 구성
 - [x] Stream Deck 남은 시간 키: 자체 표시 전용 플러그인 `streamdeck-plugin/` (ADR-005, 2026-09-28)
-- [ ] Stream Deck 캘린더 키: 다음 미팅·오늘 날짜, 누르면 Google Calendar (ADR-006, 2026-10-02 앞당김)
+- [x] Stream Deck 캘린더 키: 다음 미팅·오늘 날짜, 누르면 Google Calendar. macOS 캘린더를 Swift 읽기 앱으로 읽는다 (ADR-006, 2026-10-02)
 
 ## 미결 사항
 
