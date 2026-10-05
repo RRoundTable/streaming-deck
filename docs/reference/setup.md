@@ -120,6 +120,9 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 캘린더 키에 `?` `캘린더 권한 없음` | SDAgenda의 캘린더 권한이 거부됨 | 시스템 설정 → 개인정보 보호 및 보안 → 캘린더 → SDAgenda 전체 접근 |
 | 캘린더 키에 `?` `읽기 앱 없음` | `agenda/SDAgenda.app`이 빌드되지 않음 | `xcode-select --install` 후 `bin/setup` |
 | 캘린더 키가 `미팅 없음`인데 일정이 있음 | 계정이 macOS 캘린더에 없거나 아직 동기화 전 | 캘린더 앱에서 일정이 보이는지 확인. 종일·거절한 일정은 원래 안 나온다 |
+| Start Day·Shutdown에 `VM 연결 안 됨 (sd-vm)` | `Host sd-vm`이 없거나 키 인증이 안 됨, VM 꺼짐 | 8장 1번. `ssh -o BatchMode=yes sd-vm true`가 바로 끝나야 한다 |
+| `VM claude agents 실패` | VM의 로그인 셸 PATH에 `claude`가 없음 | VM에서 `bash -lc 'command -v claude'` |
+| 끝난 세션이 계속 `리뷰`로 나옴 | 마커를 안 쓰고 끝났거나 Stop hook 미등록 | 8장 2·4번. 리뷰를 마치면 관리자에게 정리(`claude stop`)를 시킨다 |
 | Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
 | 메뉴 막대·HUD 시간이 몇 분 뒤 멈춤 | 모듈 참조가 없어 가비지 컬렉션이 타이머를 멈춤 | `sd.lua`가 `_G.streamingDeck`에 보관 (수정됨) |
 | ⌃⌥ 키를 눌렀는데 예전 동작(단축어 알림 표시 등) | 예전 SD 단축어가 키를 먼저 가져감 | 예전 단축어 삭제 (3장) |
@@ -135,3 +138,29 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 - [ ] 블록 중 메뉴 막대 `🎯 Nm`, 화면 오른쪽 아래 반투명 빨간 HUD에 링 + `MM:SS` + 완료 조건 전체, 끌어서 이동·모서리로 크기 조절
 - [ ] 50분 후 "블록 종료" 알림, `end deep` 줄, 달 아이콘 꺼짐, `⏰` → 10분 뒤 `📌`
 - [ ] ⌃⌥0 → 방해금지 해제, `shutdown` 줄, 노트 열림, 알림, 메뉴 막대·HUD 사라짐
+- [ ] (VM을 쓰면, 8장) ⌃⌥1 알림에 `🤖 …` 줄, ⌃⌥2 선택창 맨 위에 `질문:`·`리뷰:` 세션, 고르면 로그에 `start deep — 리뷰: 세션 이름`
+
+## 8. VM 세션 (adr/007)
+
+구현은 VM의 Claude Code 세션이 맡고, Mac은 상태만 읽어 Deep 선택창(`질문:`·`리뷰:`), Start Day, Shutdown에 보여준다. VM을 쓰지 않으면 이 장을 건너뛴다(Start Day에 `! VM 연결 안 됨`만 보인다).
+
+1. **Mac → VM ssh**: 키 인증으로 비밀번호 없이 붙게 하고 `~/.ssh/config`에 별칭을 둔다. `bin/sd`는 `sd-vm`을 쓴다(다른 이름이면 `SD_VM_HOST`, 단 Hammerspoon·Stream Deck은 셸 환경을 물려받지 않으므로 별칭을 맞추는 편이 낫다).
+   ```
+   Host sd-vm
+     HostName <VM 주소>
+     User <계정>
+   ```
+2. **VM에 Stop hook**: `jq`를 설치하고 `vm/sd-stop-hook`을 `~/.sd/sd-stop-hook`으로 복사해 실행 권한을 준다. `~/.claude/settings.json`에 등록한다.
+   ```json
+   { "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "~/.sd/sd-stop-hook" } ] } ] } }
+   ```
+3. **관리자 세션**: tmux 안에 Remote Control 서버로 띄운다. Desktop 앱·claude.ai/code·휴대폰에서 이 세션에 말을 걸어 작업을 맡긴다. 이름 `manager`는 집계에서 빠진다.
+   ```bash
+   tmux new -d -s cc 'claude remote-control --spawn session --name manager --permission-mode bypassPermissions'
+   ```
+   관리자는 작업마다 `claude --bg -n "<작업명>" --permission-mode bypassPermissions "<지시>"`로 작업 세션을 띄운다. 작업명이 Deep 선택창에 그대로 나온다.
+4. **마커 규칙**: 관리자가 작업을 띄울 때 지시문 끝에 붙이고, VM 작업 저장소의 CLAUDE.md에도 둔다.
+   > 턴을 끝낼 때 마지막 줄에 `상태: 질문`(내 답이 있어야 계속함), `상태: 리뷰`(끝났고 결과 확인이 필요함), `상태: 완결`(확인할 것 없이 끝남) 중 하나를 쓴다. 그 바로 위 첫 줄은 한 줄 요약이다.
+
+   표시가 없으면 리뷰로 나온다.
+5. **확인**: VM에서 `claude agents --json`에 작업 세션이 보이고, 작업이 끝난 뒤 `~/.sd/sessions/<sessionId>`에 `리뷰<TAB>요약` 같은 줄이 생긴다. Mac에서 `bin/sd agents`가 `🤖 …` 한 줄을 낸다. Claude Code를 올린 뒤에는 이 확인을 다시 한다(`claude agents --json` 형식과 hook 입력에 기댄다).
