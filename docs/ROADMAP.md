@@ -33,12 +33,13 @@
 - [ ] 1주차: Start Day / Deep 50 / Shutdown을 실제 업무에 사용, 안 누르는 동작 제거
 - [ ] `SD Shallow 25`, `SD Interrupt`, `SD Focus 1`~`SD Focus 5`, 인박스 메모
 - [ ] 블록 종료 → 집중도 입력 강제(평가 없이 휴식으로 못 넘어가게)
+- [ ] VM Claude Code 세션 연동 (ADR-007 예정): `bin/sd agents`가 ssh로 VM의 `claude agents --json`을 읽어 실행 중·내 차례 세션 수를 메뉴 막대·HUD·Stream Deck에, 내 차례 세션 이름을 Deep 선택창에 보여준다. 선행: VM에서 Remote Control 서버·`--bg` 세션이 이 목록에 어떻게 나오는지 확인
+- [ ] 회의 직전(`⏳`)·Shutdown 때 실행 중인 VM 세션이 0이면 알림
 
 ## Later — 3~4주차
 
 - [ ] ActivityWatch 설치, 주간 리뷰 노트 집계 숫자 자동 채우기
 - [ ] Slack 상태 연동 (회사 워크스페이스 개인 토큰 발급 가능 여부 먼저 확인)
-- [ ] iTerm2 Triggers로 에이전트 완료 알림
 - [ ] Focus Guard 데몬: 브라우저 URL·회색지대 판정 (알림 전용 → 오탐 확인 후 차단 목록 탭 닫기)
 - [ ] Stream Deck 도착 시 Hotkey 액션으로 연결, 페이지·집중도 폴더 구성
 - [x] Stream Deck 남은 시간 키: 자체 표시 전용 플러그인 `streamdeck-plugin/` (ADR-005, 2026-09-28)
