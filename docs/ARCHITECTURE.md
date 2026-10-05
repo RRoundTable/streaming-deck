@@ -17,6 +17,9 @@ flowchart TD
     SDP -->|bin/sd agenda, calendar| CK[Stream Deck 키<br/>다음 미팅·오늘 날짜]
     B -->|open| AG[캘린더 읽기 앱<br/>agenda/SDAgenda.app]
     AG -->|~/.focus/agenda.tsv| B
+    B -->|ssh sd-vm| VM[원격 VM<br/>claude agents --json + ~/.sd/sessions]
+    VM -->|~/.focus/agents.tsv| B
+    W[VM 작업 세션<br/>claude --bg] -->|Stop hook vm/sd-stop-hook| VM
     F -.later.-> G[Focus Guard 데몬]
 ```
 
@@ -32,6 +35,7 @@ flowchart TD
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
 | 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다. 블록 중 HUD는 `bin/sd timer`의 끝나는 시각으로 초 단위 타이머를 그린다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
 | Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 키 화면을 그린다. 트리거는 여전히 Hotkey | adr/005-streamdeck-display-plugin |
+| VM 세션 상태 | `bin/sd agents`가 ssh(`Host sd-vm`) 한 번으로 VM의 `claude agents --json`과 Stop hook 마커(`~/.sd/sessions/<id>`)를 읽어 `~/.focus/agents.tsv`에 캐시. Deep 선택창·Start Day·Shutdown이 쓴다 | adr/007-vm-session-status |
 | 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 남은 일정을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key |
 | Stream Deck 캘린더 키 | 같은 플러그인의 두 번째 액션. `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기) | adr/006-streamdeck-calendar-key |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
@@ -43,7 +47,8 @@ flowchart TD
 streaming-deck/
 ├── .claude/skills/setup-streaming-deck/  # 새 Mac 설치 절차 (Claude Code skill)
 ├── agenda/          # 캘린더 읽기 앱 (main.swift, SDAgenda.app/Contents/Info.plist. bin/setup이 swiftc로 빌드)
-├── bin/sd           # 모든 동작의 진입점 (start-day, deep, deep25, shutdown, agenda)
+├── bin/sd           # 모든 동작의 진입점 (start-day, deep, deep25, shutdown, agenda, agents)
+├── vm/sd-stop-hook  # VM에 설치하는 Claude Code Stop hook (세션 상태 마커 기록, adr/007)
 ├── bin/setup        # 설치: 볼트·상태 폴더·Hammerspoon 설정 (멱등, 덮어쓰기 없음)
 ├── hammerspoon/sd.lua  # 앱 계층: 단축키, 메뉴 막대, HUD, 알림
 ├── streamdeck-plugin/  # Stream Deck 표시 전용 플러그인 (TypeScript, npm run build → *.sdPlugin/bin/plugin.js)
@@ -57,6 +62,7 @@ streaming-deck/
 ## Import Rules
 
 - `state.json`은 `bin/sd`만 쓰고 해석한다. Hammerspoon은 `bin/sd status` 출력과 `~/.focus/notify`만 쓰고 state.json을 직접 읽지 않는다. Stream Deck 플러그인도 `bin/sd status --short` 출력만 읽고, `~/.focus`는 갱신 신호로만 감시한다. Focus Guard는 state.json을 읽기만 한다.
+- `~/.focus/agents.tsv`는 `bin/sd`만 쓰고 읽는다. VM의 `~/.sd/sessions/`는 Stop hook(`vm/sd-stop-hook`)만 쓴다. VM에서 세션을 띄우고 정리하는 일은 이 저장소 밖(VM 관리자 세션)이고, `bin/sd`는 읽기만 한다.
 - `~/.focus/agenda.tsv`는 캘린더 읽기 앱만 쓰고 `bin/sd agenda`만 읽는다. 읽기 앱에는 판단을 두지 않는다(오늘 남은 일정을 그대로 내보낸다). 플러그인과 Hammerspoon은 `bin/sd agenda` 출력만 쓴다.
 
 ## Key Patterns
@@ -65,6 +71,7 @@ streaming-deck/
 - **로그 파일은 데일리 노트와 분리한다** (adr/002-separate-log-file): `bin/sd`는 `Logs/YYYY-MM-DD.md`에 줄을 덧붙이기만 하고, 데일리 노트는 `## 집중 로그` 아래 `![[Logs/YYYY-MM-DD]]`로 임베드해 보여준다. 사람이 편집하는 파일과 스크립트가 쓰는 파일이 달라 Obsidian 편집 중 동시 쓰기 충돌이 생기지 않는다. `bin/sd`는 데일리 노트를 만들 때만 쓰고, 이후에는 MIT를 읽기만 한다.
 - **알림은 Hammerspoon이 띄운다.** 단축키로 부른 명령은 stdout(성공)·stderr(실패)를 알림으로 띄운다. 백그라운드 `_guard`는 `~/.focus/notify`에 문구를 쓰고, Hammerspoon이 `~/.focus`를 감시하다 읽어서 띄운 뒤 지운다(Hammerspoon이 꺼져 있으면 osascript).
 - **집중 모드 on/off만 단축어에 남는다.** macOS에 CLI가 없기 때문. `bin/sd`가 완료 조건 검증 후 `SD Focus On`, 블록 종료·Shutdown 때 `SD Focus Off`를 부른다. 블록과 방해금지 시간이 정확히 일치한다.
+- **VM 세션은 ssh로 읽고 마커로 가른다** (adr/007-vm-session-status): 다른 기계의 세션 상태를 주는 Claude Code CLI가 없어 ssh로 VM의 `claude agents --json`을 읽는다. `idle`만으로는 질문·리뷰·완결을 가를 수 없어서, 작업 세션이 턴 마지막 줄에 `상태: 질문|리뷰|완결`을 쓰고 Stop hook이 세션별 파일로 남긴다. 표시가 없으면 리뷰로 본다. 45초 안에 다시 불리면 캐시를 쓴다. 대가: VM 쪽 hook 설치와 마커 규칙이 필요하다.
 - **캘린더는 macOS 캘린더를 거쳐 읽는다** (adr/006-streamdeck-calendar-key): 회사 Google 계정을 시스템 설정 → 인터넷 계정에 추가하고, 읽기 앱이 EventKit으로 읽는다. 앱 번들로 두는 이유는 캘린더 권한을 부른 쪽(Hammerspoon, Stream Deck)이 아니라 자기 이름으로 받기 위해서다. `bin/sd agenda`가 불릴 때 `open`으로 실행한다(45초 안에 다시 불리면 앞의 결과를 쓴다. 키는 1분마다 부른다). 대가: Google에서 바꾼 일정이 Mac에 오기까지 몇 분 늦는다.
 
 ## Constraints
