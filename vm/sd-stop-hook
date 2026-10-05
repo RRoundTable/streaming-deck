@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# VM의 Claude Code Stop hook (adr/007). 턴이 끝날 때마다 마지막 assistant 메시지에서
+# "상태: 질문|리뷰|완결" 줄을 찾아 ~/.sd/sessions/<session_id>에 "상태<TAB>요약" 한 줄로 쓴다.
+# 마커가 없으면 리뷰. Mac의 bin/sd agents가 ssh로 이 폴더와 `claude agents --json`을 읽는다.
+# 필요: bash, jq. 설치·등록은 docs/reference/setup.md "VM 세션" 절.
+set -euo pipefail
+
+DIR=${SD_SESSIONS:-$HOME/.sd/sessions}
+SUMMARY_LEN=80
+
+input=$(cat)
+id=$(jq -r '.session_id // empty' <<<"$input")
+[[ -n $id ]] || { echo "sd-stop-hook: hook 입력에 session_id가 없음" >&2; exit 1; }
+
+text=$(jq -r '.last_assistant_message // empty' <<<"$input")
+if [[ -z $text ]]; then
+  transcript=$(jq -r '.transcript_path // empty' <<<"$input")
+  [[ -f $transcript ]] || { echo "sd-stop-hook: transcript 없음: $transcript" >&2; exit 1; }
+  text=$(jq -rs '[.[] | select(.type == "assistant") | .message.content[]? | select(.type == "text") | .text] | last // ""' "$transcript")
+fi
+
+marker='상태: *(질문|리뷰|완결)'
+state=$(printf '%s\n' "$text" | sed -nE "s/.*$marker.*/\1/p" | tail -1)
+summary=$(printf '%s\n' "$text" | sed -E "/$marker/d" | tr '\t' ' ' | awk 'NF { print; exit }')
+
+mkdir -p "$DIR"
+printf '%s\t%s\n' "${state:-리뷰}" "${summary:0:SUMMARY_LEN}" > "$DIR/$id.tmp"
+mv "$DIR/$id.tmp" "$DIR/$id"
