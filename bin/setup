@@ -23,18 +23,34 @@ print "✓ 상태 파일: ~/.focus/state.json"
 INIT=$HOME/.hammerspoon/init.lua
 if [[ -d /Applications/Hammerspoon.app ]]; then
   mkdir -p $INIT:h
-  [[ -f $INIT ]] && sed -i '' '/hammerspoon\/sd_hud\.lua/d' $INIT   # ADR-004 이전 설정 제거
+  [[ -f $INIT ]] && sed -i '' '/hammerspoon\/sd_hud\.lua/d' $INIT:A   # ADR-004 이전 설정 제거 (:A는 init.lua가 심볼릭 링크일 때)
   grep -qF hammerspoon/sd.lua $INIT 2>/dev/null ||
     print -r -- "dofile(\"$REPO/hammerspoon/sd.lua\").start(\"$REPO\")" >> $INIT
   print "✓ Hammerspoon: $INIT (실행 중이면 Hammerspoon 콘솔에서 hs.reload())"
 else
   print "✗ Hammerspoon 없음: brew install --cask hammerspoon 후 bin/setup 재실행"
 fi
+# 캘린더 읽기 앱(adr/006): 소스가 바뀌었을 때만 빌드한다(다시 빌드하면 캘린더 권한을 다시 물을 수 있다)
+AGENDA_APP=$REPO/agenda/SDAgenda.app
+AGENDA_BIN=$AGENDA_APP/Contents/MacOS/sd-agenda
+if [[ $AGENDA_BIN -nt $REPO/agenda/main.swift ]]; then
+  print "✓ 캘린더 읽기 앱"
+elif xcrun -f swiftc >/dev/null 2>&1; then
+  mkdir -p $AGENDA_BIN:h
+  if xcrun swiftc -O $REPO/agenda/main.swift -o $AGENDA_BIN 2>/dev/null && codesign -s - --force $AGENDA_APP 2>/dev/null; then
+    print "✓ 캘린더 읽기 앱 (시스템 설정 → 인터넷 계정에 Google 계정·캘린더를 켠 뒤 bin/sd agenda로 권한 허용)"
+  else
+    print "✗ 캘린더 읽기 앱 빌드 실패: xcrun swiftc -O $REPO/agenda/main.swift -o $AGENDA_BIN"
+  fi
+else
+  print "- 캘린더 읽기 앱 건너뜀 (Xcode 명령줄 도구 없음: xcode-select --install)"
+fi
+
 # Stream Deck 표시 플러그인(adr/005): 빌드 후 Stream Deck 앱 플러그인 폴더에 링크
 PLUGIN=$REPO/streamdeck-plugin
 if [[ -d "/Applications/Elgato Stream Deck.app" ]] && command -v npm >/dev/null; then
   if (cd $PLUGIN && npm ci --silent && npm run -s build >/dev/null 2>&1 && npx streamdeck link com.rroundtable.sd.sdPlugin >/dev/null 2>&1); then
-    print "✓ Stream Deck 플러그인 (처음이면 Stream Deck 앱 재시작 후 '남은 시간' 액션을 키에 놓는다)"
+    print "✓ Stream Deck 플러그인 (처음이면 Stream Deck 앱 재시작 후 '남은 시간'·'캘린더' 액션을 키에 놓는다)"
   else
     print "✗ Stream Deck 플러그인 빌드 실패: cd $PLUGIN && npm ci && npm run build"
   fi

@@ -82,6 +82,7 @@ shortcuts run "SD Focus On" && sleep 2 && shortcuts run "SD Focus Off"
 - 시스템 설정 → 제어 센터 → 집중 모드 → 메뉴 막대에서 보기: 활성화될 때
 - Hammerspoon 알림 허용, System Events 제어 허용 (첫 사용 시 묻는다)
 - 선택: 전용 집중 모드 "딥워크"와 다크 모드 필터 (setup.md 4장)
+- Stream Deck 캘린더 키를 쓸 때(adr/006): 시스템 설정 → 인터넷 계정에 Google 계정을 추가하고 캘린더를 켠 뒤, `<REPO>/bin/sd agenda`를 한 번 실행해 SDAgenda의 캘린더 접근을 허용한다. 계정 로그인과 권한 허용은 사용자가 한다. `bin/setup`이 "캘린더 읽기 앱 건너뜀"이라고 하면 `xcode-select --install`이 먼저다.
 
 ## 7. 동작 확인
 
@@ -92,6 +93,8 @@ cat ~/.focus/state.json                                          # 블록 상태
 cat <볼트>/Logs/$(date +%F).md                                   # 로그 줄 (노트에는 임베드)
 /bin/ps -axo command | grep "^/bin/zsh .*sd _guard"             # 블록 감시 프로세스
 <REPO>/bin/sd status                                            # 메뉴 막대·HUD에 표시될 문구
+<REPO>/bin/sd agenda                                            # Stream Deck 캘린더 키에 표시될 문구
+<REPO>/bin/sd agents                                            # VM 세션 한 줄 (VM을 쓸 때만, setup.md 8장)
 ```
 
 알림, 달 아이콘, 메뉴 막대, HUD처럼 화면에 보이는 것은 Claude가 볼 수 없다(화면 기록·알림 DB 권한 없음). 사용자에게 물어서 확인한다.

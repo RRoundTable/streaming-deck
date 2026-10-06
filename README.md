@@ -7,11 +7,14 @@
 | 키 | 명령 | 하는 일 |
 |---|---|---|
 | ⌃⌥1 | `bin/sd start-day` | 데일리 노트·오늘 로그 생성 → Google Calendar·Tasks·노트 열기 |
-| ⌃⌥2 | `bin/sd deep [완료 조건]` | 선택창(MIT leaf 항목만. 새로 입력하면 로그에만 기록) → 방해금지 → 로그 → Slack·Mail 숨김 → 50분 동안 Discord·KakaoTalk 차단 → 종료 시 방해금지 해제·알림 |
+| ⌃⌥2 | `bin/sd deep [완료 조건]` | 선택창(VM 세션 질문·리뷰 → MIT leaf 항목. VM 세션을 고르면 그 세션 화면이 열린다. 새로 입력하면 로그에만 기록) → 방해금지 → 로그 → Slack·Mail 숨김 → 50분 동안 Discord·KakaoTalk 차단 → 종료 시 방해금지 해제·알림 |
 | ⌃⌥3 | `bin/sd deep25 [완료 조건]` | ⌃⌥2와 같고 블록 길이만 25분. 로그는 `deep25`, 진행도에 25분 더함 |
 | ⌃⌥0 | `bin/sd shutdown` | 블록 해제·방해금지 해제 → 로그 → 노트 열기 |
 | | `bin/sd status` | 상태 한 줄 (메뉴 막대·HUD가 표시) |
 | | `bin/sd timer` | 진행 중인 블록의 끝나는 시각·길이 (HUD 타이머가 표시) |
+| | `bin/sd agenda` | 다음 미팅 한 줄 (Stream Deck 캘린더 키가 표시). macOS 캘린더에서 읽는다 |
+| | `bin/sd calendar` | Google Calendar 오늘 보기 열기 (캘린더 키를 누르면 실행) |
+| | `bin/sd agents` | VM Claude Code 세션 한 줄: 내 차례·실행 중·VM 쉬는 중 (Stream Deck VM 키가 표시, Start Day·Shutdown 알림). ssh로 VM을 읽는다 ([setup.md 8장](docs/reference/setup.md)) |
 
 - 키, 메뉴 막대(`🎯 32m`), 화면 오른쪽 아래 HUD(전체 문구, 블록 중에는 줄어드는 링 + `MM:SS`. 블록 사이에는 `📌 1/6 · 다음 MIT`로 체크한 MIT 수), 알림은 Hammerspoon(`hammerspoon/sd.lua`)이 맡는다.
 - 방해금지는 단축어 `SD Focus On`/`SD Focus Off`를 `bin/sd`가 부른다.

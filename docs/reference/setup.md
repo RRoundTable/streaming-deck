@@ -11,6 +11,7 @@
 | Hammerspoon (`hammerspoon/sd.lua`) | ⌃⌥1/2/3/0 단축키, 메뉴 막대, 화면 구석 HUD, 알림 | 저장소 (init.lua가 불러옴) |
 | `bin/sd` | 데일리 노트 생성, 집중 로그, 선택창 후보(`sd tasks`), `~/.focus/state.json`, 앱 숨기기·종료, 블록 중 앱 차단, 방해금지 on/off 호출, 상태 문구 | 저장소 |
 | 단축어 `SD Focus On`/`SD Focus Off` | 방해금지 켜기·끄기 (macOS에 CLI가 없어서) | macOS |
+| 캘린더 읽기 앱 `agenda/SDAgenda.app` | macOS 캘린더의 오늘 남은 일정을 `~/.focus/agenda.tsv`에 쓴다 (adr/006) | 저장소 (`bin/setup`이 빌드) |
 
 ```
 ⌃⌥2 → Hammerspoon → bin/sd deep
@@ -84,10 +85,18 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | Start Day / Deep 50 / Deep 25 / Shutdown | System → Hotkey | ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0 |
 | 기록 볼트 / round-vault | System → Website (GET request in background 끔) | `obsidian://open?vault=record-vault` / `obsidian://open?vault=round-vault` |
 | 남은 시간 | streaming-deck → 남은 시간 (자체 플러그인, `bin/setup`이 설치) | 설정 없음 |
+| 캘린더 | streaming-deck → 캘린더 (같은 플러그인) | 설정 없음 |
+| VM 세션 | streaming-deck → VM 세션 (같은 플러그인, 8장) | 설정 없음 |
 
 남은 시간 키: 블록 중 빨강 `DEEP 32m`, 종료 후 빨강 `휴식`, 블록 사이 회색 `MIT 1 /6`, Start Day 전·Shutdown 후 어두운 `sd`. 플러그인이 `bin/sd status --short`를 5초마다, `~/.focus`가 바뀔 때 바로 읽는다. 키를 누르면 즉시 새로고침. 메뉴 막대와 같은 `sd status`를 읽으므로 블록 시간과 어긋나지 않는다.
 
-플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
+캘린더 키: 진행 중이면 초록 `지금` + 끝나는 시각, 50분 이내에 시작하면 주황 `42m`(Deep 50이 안 들어감), 그보다 뒤면 파랑 `14:00`, 오늘 남은 미팅이 없으면 어두운 바탕에 날짜. 아랫줄은 제목이다. 누르면 Google Calendar 오늘 보기가 열린다. 플러그인이 `bin/sd agenda`를 1분마다 읽고, `sd`는 그때마다 캘린더 읽기 앱을 다시 돌린다.
+
+VM 세션 키: 질문·리뷰할 세션이 있으면 보라 `내 차례 2` + 먼저 볼 세션 이름, 모두 일하는 중이면 초록 `실행 중 3`, 실행 중인 세션이 없으면 주황 `VM 쉬는 중 0`(기획을 넘길 때), VM을 못 읽으면 회색 `?`. 플러그인이 `bin/sd agents`를 1분마다 읽는다. 누르면 새로고침. 캘린더 키가 `⏳`일 때 실행 중인 세션이 0이면 회의마다 한 번 알림이 뜬다.
+
+캘린더 키 준비(1회): 시스템 설정 → 인터넷 계정 → 계정 추가 → Google에서 일정이 있는 계정을 넣고 "캘린더"를 켠다. 캘린더 앱에 일정이 보이면 터미널에서 `bin/sd agenda`를 한 번 실행해 권한 창을 허용한다. Google에서 바꾼 일정은 1~2분 안에 키에 반영된다(읽을 때마다 macOS에 동기화를 요청한다). 바로 보려면 키를 누른다: 동기화 후 4초쯤 뒤에 갱신된다.
+
+플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. `restart`가 "Restarted"라고 나와도 플러그인이 그대로면 개발자 모드가 꺼진 것이다: `npx streamdeck dev`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
 
 ## 5. 첫 실행 권한
 
@@ -96,6 +105,7 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | Hammerspoon 알림 | 첫 알림 | 허용 |
 | Hammerspoon이 System Events 제어 | 앱 숨기기 처음 사용 | 허용 |
 | "계속하겠습니까" (알림 형태) | `SD Focus On/Off` 첫 호출 | 옵션 → 항상 허용 |
+| SDAgenda가 캘린더에 접근 | `bin/sd agenda` 첫 호출, 읽기 앱을 다시 빌드한 뒤 | 전체 접근 허용 |
 
 ## 6. 문제 해결
 
@@ -110,6 +120,14 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 완료 조건 한글이 `ㄴㅗㅌㅡ`처럼 저장됨 | osascript 입력창에서 한글 IME 조합 실패 (간헐적) | 단축키는 Hammerspoon 선택창을 쓴다. osascript 입력창은 터미널에서 `sd deep`을 인자 없이 부를 때만 뜬다 |
 | 로그 줄이 `D@@`처럼 깨짐 | 노트 편집 중 sd가 같은 파일에 써서 Obsidian 병합 충돌 | 로그를 `Logs/`로 분리 (adr/002) |
 | 블록 중 카톡·Discord가 다시 켜짐 | 숨김은 ⌘Tab으로 되돌릴 수 있음 | `BLOCKED_APPS`가 블록 동안 5초마다 종료 |
+| 캘린더 키에 `?` `캘린더 권한 없음` | SDAgenda의 캘린더 권한이 거부됨 | 시스템 설정 → 개인정보 보호 및 보안 → 캘린더 → SDAgenda 전체 접근 |
+| 캘린더 키에 `?` `읽기 앱 없음` | `agenda/SDAgenda.app`이 빌드되지 않음 | `xcode-select --install` 후 `bin/setup` |
+| 캘린더 키가 `미팅 없음`인데 일정이 있음 | 계정이 macOS 캘린더에 없거나 아직 동기화 전 | 캘린더 앱에서 일정이 보이는지 확인. 종일·거절한 일정은 원래 안 나온다 |
+| Start Day·Shutdown·VM 키에 `VM 연결 안 됨` | `Host sd-vm`이 없거나 키 인증이 안 됨, VM 꺼짐 | 8장 1번. `ssh -o BatchMode=yes sd-vm true`가 바로 끝나야 한다 |
+| `VM claude agents 실패` | VM의 로그인 셸 PATH에 `claude`가 없음 | VM에서 `bash -lc 'command -v claude'` |
+| 선택창에 `리뷰: bridge-cse-…` | 세션 이름을 붙이지 않음 (claude.ai 자동 제목은 VM에 오지 않는다) | Desktop 앱에서 세션 이름을 바꾼다. 45초 안에 반영 |
+| 끝난 세션이 계속 `리뷰`로 나옴 | 아직 정리하지 않음 | 8장 3번: 리뷰를 마친 세션을 정리한다 |
+| 아무 작업도 안 했는데 `리뷰: …`가 하나 있음 | Remote Control 서버가 시작할 때 만든 빈 세션 | 서버를 `--no-create-session-in-dir`로 띄운다 (8장 2번) |
 | Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
 | 메뉴 막대·HUD 시간이 몇 분 뒤 멈춤 | 모듈 참조가 없어 가비지 컬렉션이 타이머를 멈춤 | `sd.lua`가 `_G.streamingDeck`에 보관 (수정됨) |
 | ⌃⌥ 키를 눌렀는데 예전 동작(단축어 알림 표시 등) | 예전 SD 단축어가 키를 먼저 가져감 | 예전 단축어 삭제 (3장) |
@@ -125,3 +143,21 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 - [ ] 블록 중 메뉴 막대 `🎯 Nm`, 화면 오른쪽 아래 반투명 빨간 HUD에 링 + `MM:SS` + 완료 조건 전체, 끌어서 이동·모서리로 크기 조절
 - [ ] 50분 후 "블록 종료" 알림, `end deep` 줄, 달 아이콘 꺼짐, `⏰` → 10분 뒤 `📌`
 - [ ] ⌃⌥0 → 방해금지 해제, `shutdown` 줄, 노트 열림, 알림, 메뉴 막대·HUD 사라짐
+- [ ] (VM을 쓰면, 8장) ⌃⌥1 알림에 `🤖 …` 줄, ⌃⌥2 선택창 맨 위에 `질문:`·`리뷰:` 세션, 고르면 로그에 `start deep — 리뷰: 세션 이름`
+
+## 8. VM 세션 (adr/007)
+
+구현은 VM의 Claude Code 세션이 맡고, Mac은 VM의 `claude agents --json`만 읽어 Deep 선택창(`질문:`·`리뷰:`), Start Day, Shutdown에 보여준다. VM에 이 저장소의 파일·hook·CLAUDE.md 규칙은 설치하지 않는다. VM을 쓰지 않으면 이 장을 건너뛴다(Start Day에 `! VM 연결 안 됨`만 보인다).
+
+1. **Mac → VM ssh**: 키 인증으로 비밀번호 없이 붙게 하고 `~/.ssh/config`에 별칭을 둔다. `bin/sd`는 `sd-vm`을 쓴다(다른 이름이면 `SD_VM_HOST`, 단 Hammerspoon·Stream Deck은 셸 환경을 물려받지 않으므로 별칭을 맞추는 편이 낫다).
+   ```
+   Host sd-vm
+     HostName <VM 주소>
+     User <계정>
+   ```
+2. **VM에 Remote Control 서버**: 작업 저장소에서 tmux 안에 띄운다. 세션마다 worktree를 받고 권한 확인으로 멈추지 않는다. 시작할 때 빈 세션을 만들지 않게 한다(만들면 늘 `리뷰`로 잡힌다).
+   ```bash
+   tmux new -d -s cc 'claude remote-control --spawn worktree --permission-mode bypassPermissions --no-create-session-in-dir --name vm'
+   ```
+3. **쓰기**: Desktop 앱·claude.ai/code·휴대폰에서 이 서버에 새 세션을 띄워 기획을 넘긴다. ⌃⌥2 선택창에서 `리뷰: …`를 고르면 블록이 시작되고 그 세션의 claude.ai 화면이 열린다. 세션을 띄우면 바로 이름을 붙인다(Desktop 앱에서 이름 바꾸기). 그 이름이 VM에도 반영되어 Deep 선택창에 그대로 나온다. 붙이지 않으면 claude.ai의 자동 제목은 VM에 오지 않아 `bridge-cse-…`로 나온다. 리뷰를 마친 세션은 정리해야 할 일 목록에서 빠진다. 정리하지 않은 세션은 다음 날에도 `리뷰`로 나온다.
+4. **확인**: 세션 하나를 띄운 뒤 VM에서 `claude agents --json`에 그 세션이 `busy`로 보이고, 끝나면 `idle`이 되고, 정리하면 사라지는지 본다. Mac에서 `bin/sd agents`가 `🤖 …` 한 줄을 낸다. Claude Code를 올린 뒤에는 이 확인을 다시 한다(`claude agents --json` 형식에 기댄다).
