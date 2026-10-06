@@ -9,6 +9,7 @@
 #   sd tasks            Deep 선택창 후보 "작업<TAB>설명" (Hammerspoon이 표시)
 #   sd agenda           다음 미팅 한 줄 "아이콘 큰 글자 · 윗줄 · 아랫줄" (Stream Deck 캘린더 키가 표시)
 #   sd calendar         Google Calendar 오늘 보기 열기 + 캘린더 동기화 후 다시 읽기(백그라운드)
+#   sd sessions         claude.ai 세션 목록 열기 (VM 세션 키를 누르면 실행)
 #   sd agents [--list]  VM Claude Code 세션 한 줄 "아이콘 큰 글자 · 윗줄 · 아랫줄" (adr/007, Stream Deck VM 키가 표시). --list는 Deep 선택창 후보
 set -euo pipefail
 
@@ -438,8 +439,9 @@ case ${1:-} in
   tasks)     cmd_tasks ;;
   agenda)    cmd_agenda ;;
   calendar)  cmd_calendar ;;
+  sessions)  open "https://claude.ai/code" ;;
   agents)    cmd_agents "${2:-}" ;;
   _guard)    shift; cmd__guard "$@" ;;
   _meeting_warn) shift; meeting_warn "$@" ;;
-  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | timer | tasks | agenda | calendar | agents [--list]" ;;
+  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | timer | tasks | agenda | calendar | sessions | agents [--list]" ;;
 esac
