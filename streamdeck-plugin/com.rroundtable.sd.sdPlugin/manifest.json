@@ -38,7 +38,7 @@
       "UUID": "com.rroundtable.sd.agents",
       "Name": "VM 세션",
       "Icon": "imgs/action",
-      "Tooltip": "VM Claude Code 세션: 내 차례(질문·리뷰) 수와 먼저 볼 세션, 실행 중, VM 쉬는 중. 누르면 claude.ai 세션 목록",
+      "Tooltip": "VM Claude Code 세션: 내 차례(질문·리뷰) 수와 먼저 볼 세션, 실행 중, VM 쉬는 중. 누르면 Desktop 앱의 기다리는 세션",
       "Controllers": ["Keypad"],
       "UserTitleEnabled": false,
       "SupportedInMultiActions": false,
