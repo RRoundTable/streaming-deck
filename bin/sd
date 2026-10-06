@@ -317,7 +317,8 @@ fetch_agents() {
   mtime=$(stat -f %m $AGENTS 2>/dev/null) || mtime=0
   (( now - mtime < AGENTS_TTL )) && return 0
   mkdir -p $STATE_DIR
-  out=$(ssh -o BatchMode=yes -o ConnectTimeout=3 $VM_HOST bash -l -c "'claude agents --json'" 2>/dev/null) && code=0 || code=$?
+  # Hammerspoon·Stream Deck이 부르면 PATH에 Homebrew가 없다. ssh ProxyCommand(gcloud IAP 터널 등)가 Homebrew 도구를 쓴다
+  out=$(PATH=$PATH:/opt/homebrew/bin:/usr/local/bin ssh -o BatchMode=yes -o ConnectTimeout=3 $VM_HOST bash -l -c "'claude agents --json'" 2>/dev/null) && code=0 || code=$?
   if (( code == 255 )); then print "!\tVM 연결 안 됨 ($VM_HOST)" > $AGENTS; return 0
   elif (( code != 0 )); then print "!\tVM claude agents 실패" > $AGENTS; return 0
   fi

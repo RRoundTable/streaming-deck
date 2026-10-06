@@ -122,6 +122,7 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 캘린더 키가 `미팅 없음`인데 일정이 있음 | 계정이 macOS 캘린더에 없거나 아직 동기화 전 | 캘린더 앱에서 일정이 보이는지 확인. 종일·거절한 일정은 원래 안 나온다 |
 | Start Day·Shutdown에 `VM 연결 안 됨 (sd-vm)` | `Host sd-vm`이 없거나 키 인증이 안 됨, VM 꺼짐 | 8장 1번. `ssh -o BatchMode=yes sd-vm true`가 바로 끝나야 한다 |
 | `VM claude agents 실패` | VM의 로그인 셸 PATH에 `claude`가 없음 | VM에서 `bash -lc 'command -v claude'` |
+| 선택창에 `리뷰: bridge-cse-…` | 세션 이름을 붙이지 않음 (claude.ai 자동 제목은 VM에 오지 않는다) | Desktop 앱에서 세션 이름을 바꾼다. 45초 안에 반영 |
 | 끝난 세션이 계속 `리뷰`로 나옴 | 아직 정리하지 않음 | 8장 3번: 리뷰를 마친 세션을 정리한다 |
 | 아무 작업도 안 했는데 `리뷰: …`가 하나 있음 | Remote Control 서버가 시작할 때 만든 빈 세션 | 서버를 `--no-create-session-in-dir`로 띄운다 (8장 2번) |
 | Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
@@ -155,5 +156,5 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
    ```bash
    tmux new -d -s cc 'claude remote-control --spawn worktree --permission-mode bypassPermissions --no-create-session-in-dir --name vm'
    ```
-3. **쓰기**: Desktop 앱·claude.ai/code·휴대폰에서 이 서버에 새 세션을 띄워 기획을 넘긴다. 세션 이름이 Deep 선택창에 그대로 나온다. 리뷰를 마친 세션은 정리해야 할 일 목록에서 빠진다. 정리하지 않은 세션은 다음 날에도 `리뷰`로 나온다.
+3. **쓰기**: Desktop 앱·claude.ai/code·휴대폰에서 이 서버에 새 세션을 띄워 기획을 넘긴다. 세션을 띄우면 바로 이름을 붙인다(Desktop 앱에서 이름 바꾸기). 그 이름이 VM에도 반영되어 Deep 선택창에 그대로 나온다. 붙이지 않으면 claude.ai의 자동 제목은 VM에 오지 않아 `bridge-cse-…`로 나온다. 리뷰를 마친 세션은 정리해야 할 일 목록에서 빠진다. 정리하지 않은 세션은 다음 날에도 `리뷰`로 나온다.
 4. **확인**: 세션 하나를 띄운 뒤 VM에서 `claude agents --json`에 그 세션이 `busy`로 보이고, 끝나면 `idle`이 되고, 정리하면 사라지는지 본다. Mac에서 `bin/sd agents`가 `🤖 …` 한 줄을 낸다. Claude Code를 올린 뒤에는 이 확인을 다시 한다(`claude agents --json` 형식에 기댄다).
