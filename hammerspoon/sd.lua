@@ -1,6 +1,6 @@
 -- streaming-deck의 macOS 앱 계층. 로직은 전부 bin/sd에 있고, 여기서는 연결만 한다.
 --   ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0   bin/sd start-day / deep / deep25 / shutdown → 결과(stdout, 실패 시 stderr)를 알림
---   ⌃⌥2 / ⌃⌥3은 먼저 선택창: bin/sd tasks 후보(VM 세션 질문·리뷰, MIT leaf 항목)에서 고르거나 새로 입력, Esc는 취소
+--   ⌃⌥2 / ⌃⌥3은 먼저 선택창: bin/sd tasks 후보(MIT leaf 항목)에서 고르거나 새로 입력, Esc는 취소
 --   bin/sd status       메뉴 막대(" · " 앞부분만) + 화면 오른쪽 아래 HUD(전체 문구)
 --   메뉴 막대를 클릭하면 HUD가 꺼지고 켜진다. 꺼 두어도 블록을 시작하면 다시 켜진다
 --   HUD를 클릭하면(끌지 않고) 접히고 펴진다. 접으면 블록 중에는 링 + MM:SS만, 그 밖에는 " · " 앞부분만
