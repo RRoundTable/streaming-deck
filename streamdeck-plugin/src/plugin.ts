@@ -2,7 +2,7 @@
 // 로직은 bin/sd에 있다. 여기서는 sd 출력 한 줄을 읽어 키 화면을 그리기만 한다.
 //   남은 시간 키: `sd status --short`, 5초마다. 누르면 새로고침
 //   캘린더 키:    `sd agenda`, 1분마다. 누르면 `sd calendar`(Google Calendar 오늘 보기 + 동기화)
-//   VM 키:        `sd agents`, 1분마다. 누르면 새로고침 (sd는 VM을 45초 안에 다시 읽지 않는다)
+//   VM 키:        `sd agents`, 1분마다. 누르면 `sd sessions`(claude.ai 세션 목록)
 import streamDeck, { SingletonAction, type KeyDownEvent, type WillAppearEvent } from "@elgato/streamdeck";
 import { execFile } from "node:child_process";
 import { realpathSync, watch } from "node:fs";
@@ -68,7 +68,7 @@ class SdKey extends SingletonAction {
 const status = new SdKey("com.rroundtable.sd.status", ["status", "--short"], face);
 const calendar = new SdKey("com.rroundtable.sd.calendar", ["agenda"], agendaFace, ["calendar"]);
 streamDeck.actions.registerAction(status);
-const agents = new SdKey("com.rroundtable.sd.agents", ["agents"], agentsFace);
+const agents = new SdKey("com.rroundtable.sd.agents", ["agents"], agentsFace, ["sessions"]);
 streamDeck.actions.registerAction(calendar);
 streamDeck.actions.registerAction(agents);
 

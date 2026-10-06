@@ -77,6 +77,6 @@ streaming-deck/
 
 ## Constraints
 
-- 트리거 계층에는 로직을 두지 않는다. Stream Deck으로 옮길 때 다시 만들 것이 없어야 한다. 플러그인이 키 입력을 받는 것은 캘린더 키뿐이고, 그때도 `bin/sd calendar`를 부르기만 한다.
+- 트리거 계층에는 로직을 두지 않는다. Stream Deck으로 옮길 때 다시 만들 것이 없어야 한다. 플러그인이 키 입력으로 무언가 여는 것은 캘린더 키(`bin/sd calendar`, adr/006)와 VM 세션 키(`bin/sd sessions`, adr/008)뿐이고, 그때도 `bin/sd`를 부르기만 한다.
 - 브라우저는 Chrome·Safari·Arc 중 하나 (Firefox는 AppleScript로 URL 조회 불가).
 - 데몬 환경에 `ANTHROPIC_API_KEY`를 두지 않는다.

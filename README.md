@@ -14,6 +14,7 @@
 | | `bin/sd timer` | 진행 중인 블록의 끝나는 시각·길이 (HUD 타이머가 표시) |
 | | `bin/sd agenda` | 다음 미팅 한 줄 (Stream Deck 캘린더 키가 표시). macOS 캘린더에서 읽는다 |
 | | `bin/sd calendar` | Google Calendar 오늘 보기 열기 (캘린더 키를 누르면 실행) |
+| | `bin/sd sessions` | claude.ai 세션 목록 열기 (VM 세션 키를 누르면 실행) |
 | | `bin/sd agents` | VM Claude Code 세션 한 줄: 내 차례·실행 중·VM 쉬는 중 (Stream Deck VM 키가 표시, Start Day·Shutdown 알림). ssh로 VM을 읽는다 ([setup.md 8장](docs/reference/setup.md)) |
 | | `bin/vault-sync` | record-vault·round-vault를 커밋 → `pull --rebase` → push, 결과 알림 (Stream Deck: System > Open `~/Applications/Vault Sync.app`) |
 
