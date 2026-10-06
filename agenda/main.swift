@@ -1,5 +1,5 @@
 // 캘린더 읽기 앱 (adr/006, adr/009). macOS 캘린더에서 읽어 파일에 쓴다. 판단은 bin/sd agenda가 한다.
-//   "시작 epoch<TAB>끝 epoch<TAB>제목"   지금부터 오늘 끝까지의 일정
+//   "시작 epoch<TAB>끝 epoch<TAB>제목"   오늘 일정 (이미 끝난 것 포함. 지난 "퇴근" 일정도 bin/sd가 쓴다)
 //   "holiday<TAB>YYYY-MM-DD<TAB>이름"   오늘부터 HOLIDAY_DAYS일 동안의 공휴일 (이름에 "휴일"·"Holiday"가 든 캘린더의 종일 일정)
 //   "! 문구"                            읽지 못함 (권한 없음, 공휴일 캘린더 없음)
 // 읽을 때마다 macOS에 원격(Google 등) 동기화를 요청한다. 동기화는 몇 초 걸리므로 그 결과는 다음에 읽을 때 보인다.
@@ -67,7 +67,7 @@ let holidays = store.events(matching: store.predicateForEvents(
     }
     return lines
   }
-let events = store.events(matching: store.predicateForEvents(withStart: now, end: midnight, calendars: nil))
+let events = store.events(matching: store.predicateForEvents(withStart: today, end: midnight, calendars: nil))
   .filter { !$0.isAllDay && $0.status != .canceled }
   .filter { !($0.attendees ?? []).contains { $0.isCurrentUser && $0.participantStatus == .declined } }
   .sorted { $0.startDate < $1.startDate }

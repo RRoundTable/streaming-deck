@@ -26,9 +26,8 @@ AGENDA=$STATE_DIR/agenda.tsv        # 캘린더 읽기 앱만 쓴다: 일정 "�
 AGENDA_APP=${SELF:h:h}/agenda/SDAgenda.app
 AGENDA_TTL=45                       # 이보다 오래된 agenda.tsv는 다시 읽는다 (초). 키가 1분마다 부르므로 매번 새로 읽힌다
 AGENDA_SYNC_WAIT=4                  # sd calendar: 동기화 요청 후 이만큼 기다렸다 읽는다 (초). 동기화는 3초쯤 걸린다
-AWAY_MEALS=("12:00 13:00 점심" "18:00 19:00 저녁")  # 근무일마다 자리 비움 "시작 끝 이름"
 WORK_START=09:00                    # 출근. 퇴근 공백은 다음 근무일(주말·공휴일이 아닌 날) 이 시각에 끝난다
-WORK_END=19:00                      # 퇴근
+OFF_TITLE=퇴근                      # 근무일마다 캘린더에 이 제목의 일정을 둔다. 시작 시각이 퇴근이다
 LONG_MIN=180                        # 이 분 이상 비우면 긴 공백 (자리 비움 키 아랫칸)
 
 die() { print -u2 "sd: $*"; exit 1; }
@@ -275,7 +274,7 @@ cmd_calendar() {
   run_agenda_app $AGENDA_SYNC_WAIT || true
 }
 
-# 자리 비움 (adr/009). 일정·식사·퇴근 중 지금 이후의 공백을 모아, 이어지거나 겹치는 것은 하나로 합친다(이름은 가장 긴 것).
+# 자리 비움 (adr/009). 캘린더 일정(식사 포함)과 퇴근 중 지금 이후의 공백을 모아, 이어지거나 겹치는 것은 하나로 합친다(이름은 가장 긴 것).
 # 가까운 공백과 다음 긴 공백(LONG_MIN 이상)을 한 줄로 낸다. 같은 공백이면 하나만. 판단은 여기서 하고 표시하는 쪽은 모양만 정한다.
 #   ⚪ 주간 싱크 · 42m ↦30m | 퇴근 · 3h20m ↦14h   남은 시간 ↦ 비우는 길이
 #   🟠 퇴근 · 40m ↦2d                            가까운 공백이 곧 긴 공백 (금요일, 연휴 전날은 ↦ 길이가 일 단위)
@@ -308,15 +307,16 @@ cmd_agenda() {
     fi
   done < $AGENDA
 
-  local today=$(date +%F) off meal next i
-  local -a m
+  # 퇴근 일정은 시작 시각만 쓴다. 공백은 그때부터 다음 근무일 출근까지라 일정 자체는 뺀다
+  local today=$(date +%F) off= next tab=$'\t'
+  local i=${away[(I)*${tab}$OFF_TITLE]}
+  if (( i )); then
+    off=${away[i]%%$'\t'*}
+    away[i]=()
+  fi
   if is_workday $today; then
-    for meal in $AWAY_MEALS; do
-      m=(${=meal})
-      away+=("$(epoch_at $today $m[1])"$'\t'"$(epoch_at $today $m[2])"$'\t'"$m[3]")
-    done
-    (( now < $(epoch_at $today $WORK_START) )) && away+=("$now"$'\t'"$(epoch_at $today $WORK_START)"$'\t'퇴근)
-    off=$(epoch_at $today $WORK_END)
+    [[ -n $off ]] || { print "! 오늘 $OFF_TITLE 일정 없음"; return 0 }
+    (( now < $(epoch_at $today $WORK_START) )) && away+=("$now"$'\t'"$(epoch_at $today $WORK_START)"$'\t'$OFF_TITLE)
   else
     off=$now
   fi
@@ -324,7 +324,7 @@ cmd_agenda() {
     next=$(date -v+${i}d +%F)
     is_workday $next && break
   done
-  away+=("$off"$'\t'"$(epoch_at $next $WORK_START)"$'\t'퇴근)
+  away+=("$off"$'\t'"$(epoch_at $next $WORK_START)"$'\t'$OFF_TITLE)
 
   local -a merged
   local line s e n ms me mn
