@@ -94,7 +94,7 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 
 VM 세션 키: 질문·리뷰할 세션이 있으면 보라 `내 차례 2` + 먼저 볼 세션 이름, 모두 일하는 중이면 초록 `실행 중 3`, 실행 중인 세션이 없으면 주황 `VM 쉬는 중 0`(기획을 넘길 때), VM을 못 읽으면 회색 `?`. 플러그인이 `bin/sd agents`를 1분마다 읽는다. 누르면 새로고침. 캘린더 키가 `⏳`일 때 실행 중인 세션이 0이면 회의마다 한 번 알림이 뜬다.
 
-캘린더 키 준비(1회): 시스템 설정 → 인터넷 계정 → 계정 추가 → Google에서 일정이 있는 계정을 넣고 "캘린더"를 켠다. 캘린더 앱에 일정이 보이면 터미널에서 `bin/sd agenda`를 한 번 실행해 권한 창을 허용한다. Google에서 바꾼 일정은 Mac에 동기화된 뒤(몇 분) 키에 반영된다.
+캘린더 키 준비(1회): 시스템 설정 → 인터넷 계정 → 계정 추가 → Google에서 일정이 있는 계정을 넣고 "캘린더"를 켠다. 캘린더 앱에 일정이 보이면 터미널에서 `bin/sd agenda`를 한 번 실행해 권한 창을 허용한다. Google에서 바꾼 일정은 1~2분 안에 키에 반영된다(읽을 때마다 macOS에 동기화를 요청한다). 바로 보려면 키를 누른다: 동기화 후 4초쯤 뒤에 갱신된다.
 
 플러그인 코드를 고친 뒤: `cd streamdeck-plugin && npm run build && npx streamdeck restart com.rroundtable.sd`. `restart`가 "Restarted"라고 나와도 플러그인이 그대로면 개발자 모드가 꺼진 것이다: `npx streamdeck dev`. 처음 링크한 뒤에는 Stream Deck 앱을 한 번 재시작해야 목록에 나온다. 로그: `streamdeck-plugin/com.rroundtable.sd.sdPlugin/logs/`.
 

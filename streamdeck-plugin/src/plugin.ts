@@ -1,7 +1,7 @@
 // streaming-deck Stream Deck 플러그인 (ADR-005, ADR-006, ADR-007).
 // 로직은 bin/sd에 있다. 여기서는 sd 출력 한 줄을 읽어 키 화면을 그리기만 한다.
 //   남은 시간 키: `sd status --short`, 5초마다. 누르면 새로고침
-//   캘린더 키:    `sd agenda`, 1분마다. 누르면 `sd calendar`(Google Calendar 오늘 보기)
+//   캘린더 키:    `sd agenda`, 1분마다. 누르면 `sd calendar`(Google Calendar 오늘 보기 + 동기화)
 //   VM 키:        `sd agents`, 1분마다. 누르면 새로고침 (sd는 VM을 45초 안에 다시 읽지 않는다)
 import streamDeck, { SingletonAction, type KeyDownEvent, type WillAppearEvent } from "@elgato/streamdeck";
 import { execFile } from "node:child_process";
@@ -76,12 +76,16 @@ setInterval(() => void status.render(), STATUS_POLL_MS);
 setInterval(() => void calendar.render(), AGENDA_POLL_MS);
 setInterval(() => void agents.render(), AGENTS_POLL_MS);
 
-// 블록 시작·종료·Shutdown은 ~/.focus/state.json을 바꾼다. 바로 반영하되 연속 변경은 한 번으로 묶는다.
+// 블록 시작·종료·Shutdown은 ~/.focus/state.json을, 캘린더 읽기 앱은 ~/.focus/agenda.tsv를 바꾼다.
+// 바로 반영하되 연속 변경은 한 번으로 묶는다.
 let pending: NodeJS.Timeout | undefined;
 try {
   watch(FOCUS_DIR, () => {
     clearTimeout(pending);
-    pending = setTimeout(() => void status.render(), 300);
+    pending = setTimeout(() => {
+      void status.render();
+      void calendar.render();
+    }, 300);
   });
 } catch (err) {
   streamDeck.logger.warn(`~/.focus 감시 실패, 주기 갱신만 사용: ${err}`);
