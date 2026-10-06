@@ -50,7 +50,7 @@ fi
 PLUGIN=$REPO/streamdeck-plugin
 if [[ -d "/Applications/Elgato Stream Deck.app" ]] && command -v npm >/dev/null; then
   if (cd $PLUGIN && npm ci --silent && npm run -s build >/dev/null 2>&1 && npx streamdeck link com.rroundtable.sd.sdPlugin >/dev/null 2>&1); then
-    print "✓ Stream Deck 플러그인 (처음이면 Stream Deck 앱 재시작 후 '남은 시간'·'캘린더' 액션을 키에 놓는다)"
+    print "✓ Stream Deck 플러그인 (처음이면 Stream Deck 앱 재시작 후 '남은 시간'·'자리 비움' 액션을 키에 놓는다)"
   else
     print "✗ Stream Deck 플러그인 빌드 실패: cd $PLUGIN && npm ci && npm run build"
   fi
