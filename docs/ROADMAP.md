@@ -24,6 +24,7 @@
 
 이식
 - [x] `bin/setup` + `vault-template/` + `setup-streaming-deck` skill
+- [x] `bin/vault-sync`를 dotfiles에서 옮겨옴, `bin/setup`이 `Vault Sync.app` 생성 (2026-10-06)
 
 확인 남음
 - [x] 한 블록 전체를 Hammerspoon 경로로 (확인 2026-09-27): HUD 시간 감소, 50분 후 알림·`end deep`·방해금지 해제 ([setup.md 7장](reference/setup.md))

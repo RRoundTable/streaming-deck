@@ -15,6 +15,7 @@
 | | `bin/sd agenda` | 다음 미팅 한 줄 (Stream Deck 캘린더 키가 표시). macOS 캘린더에서 읽는다 |
 | | `bin/sd calendar` | Google Calendar 오늘 보기 열기 (캘린더 키를 누르면 실행) |
 | | `bin/sd agents` | VM Claude Code 세션 한 줄: 내 차례·실행 중·VM 쉬는 중 (Stream Deck VM 키가 표시, Start Day·Shutdown 알림). ssh로 VM을 읽는다 ([setup.md 8장](docs/reference/setup.md)) |
+| | `bin/vault-sync` | record-vault·round-vault를 커밋 → `pull --rebase` → push, 결과 알림 (Stream Deck: System > Open `~/Applications/Vault Sync.app`) |
 
 - 키, 메뉴 막대(`🎯 32m`), 화면 오른쪽 아래 HUD(전체 문구, 블록 중에는 줄어드는 링 + `MM:SS`. 블록 사이에는 `📌 1/6 · 다음 MIT`로 체크한 MIT 수), 알림은 Hammerspoon(`hammerspoon/sd.lua`)이 맡는다.
 - 방해금지는 단축어 `SD Focus On`/`SD Focus Off`를 `bin/sd`가 부른다.

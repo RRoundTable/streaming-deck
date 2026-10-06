@@ -9,7 +9,7 @@ VAULT=${SD_VAULT:-$HOME/workspace/personal/record-vault}
 
 [[ $(uname) == Darwin ]] || { print -u2 "setup: macOS 전용"; exit 1; }
 
-chmod +x $REPO/bin/sd
+chmod +x $REPO/bin/sd $REPO/bin/vault-sync
 
 # 기록 볼트: 없는 파일만 복사
 mkdir -p $VAULT/{Daily,Weekly,Logs}
@@ -57,6 +57,13 @@ if [[ -d "/Applications/Elgato Stream Deck.app" ]] && command -v npm >/dev/null;
 else
   print "- Stream Deck 플러그인 건너뜀 (Elgato Stream Deck 앱 또는 npm 없음)"
 fi
+
+# 볼트 동기화: 터미널에서는 vault-sync, Stream Deck에서는 System > Open으로 Vault Sync.app
+mkdir -p $HOME/.local/bin $HOME/Applications
+ln -sf $REPO/bin/vault-sync $HOME/.local/bin/vault-sync
+osacompile -o "$HOME/Applications/Vault Sync.app" \
+  -e "do shell script quoted form of \"$REPO/bin/vault-sync\" & \" >/dev/null 2>&1 || true\""
+print "✓ 볼트 동기화: ~/.local/bin/vault-sync, ~/Applications/Vault Sync.app"
 
 [[ $VAULT == $HOME/workspace/personal/record-vault ]] ||
   print "! 볼트가 기본 경로가 아님: Hammerspoon이 부르는 sd에는 SD_VAULT가 전달되지 않는다. bin/sd의 VAULT 기본값을 바꾼다."

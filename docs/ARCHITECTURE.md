@@ -38,6 +38,7 @@ flowchart TD
 | VM 세션 상태 | `bin/sd agents`가 ssh(`Host sd-vm`) 한 번으로 VM의 `claude agents --json`과 세션별 claude.ai id(`~/.claude/sessions/*.json`의 `bridgeSessionId`)를 읽어 `~/.focus/agents.tsv`에 캐시. Deep 선택창(고르면 그 세션 화면 열기)·Start Day·Shutdown·회의 직전 경고·Stream Deck VM 키가 쓴다 | adr/007-vm-session-status |
 | 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 남은 일정을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key |
 | Stream Deck 캘린더 키 | 같은 플러그인의 두 번째 액션. `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기) | adr/006-streamdeck-calendar-key |
+| 볼트 동기화 | `bin/vault-sync` (bash, git). 기록·업무 볼트를 커밋 → `pull --rebase` → push. 충돌이면 rebase를 되돌리고 알린다. 알림은 `hammerspoon://notify`(dotfiles `hammerspoon/init.lua`), 없으면 osascript. 로그는 `~/Library/Logs/vault-sync.log` | — |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
 
@@ -49,6 +50,7 @@ streaming-deck/
 ├── agenda/          # 캘린더 읽기 앱 (main.swift, SDAgenda.app/Contents/Info.plist. bin/setup이 swiftc로 빌드)
 ├── bin/sd           # 모든 동작의 진입점 (start-day, deep, deep25, shutdown, agenda, agents)
 ├── bin/setup        # 설치: 볼트·상태 폴더·Hammerspoon 설정 (멱등, 덮어쓰기 없음)
+├── bin/vault-sync   # 볼트 git 동기화: 커밋 → pull --rebase → push (bin/sd와 독립. setup이 ~/.local/bin 링크와 Vault Sync.app을 만든다)
 ├── hammerspoon/sd.lua  # 앱 계층: 단축키, 메뉴 막대, HUD, 알림
 ├── streamdeck-plugin/  # Stream Deck 표시 전용 플러그인 (TypeScript, npm run build → *.sdPlugin/bin/plugin.js)
 ├── vault-template/  # 기록 볼트 뼈대 (템플릿, Inbox, Goals, .obsidian 설정)

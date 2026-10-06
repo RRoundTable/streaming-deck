@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Commit, pull --rebase, and push every Obsidian vault. Run from a terminal or a
+# Stream Deck key (System > Open > ~/Applications/Vault Sync.app, made by bin/setup);
+# results show as a notification.
+set -uo pipefail
+
+# Stream Deck launches with a bare PATH; gh is the git credential helper.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+
+VAULTS=(
+  "$HOME/workspace/personal/record-vault"
+  "$HOME/workspace/personal/round-vault"
+)
+LOG="$HOME/Library/Logs/vault-sync.log"
+
+# notify <title> <body>: via the hammerspoon://notify handler (dotfiles hammerspoon/init.lua), else osascript
+notify() {
+  if pgrep -xq Hammerspoon; then
+    local q
+    q="$(python3 -c 'import sys, urllib.parse as u; print(u.urlencode({"title": sys.argv[1], "body": sys.argv[2]}, quote_via=u.quote))' "$1" "$2")"
+    open -g "hammerspoon://notify?$q"
+  else
+    osascript -e 'on run {t, b}' -e 'display notification b with title t sound name "Glass"' -e 'end run' "$1" "$2" 2>/dev/null
+  fi
+}
+
+sync_vault() {
+  local dir="$1" name
+  name="$(basename "$dir")"
+  if ! git -C "$dir" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "$name: not a git repo"; return 1
+  fi
+  if [ -n "$(git -C "$dir" status --porcelain)" ]; then
+    git -C "$dir" add -A
+    git -C "$dir" commit -q -m "vault backup: $(date '+%Y-%m-%d %H:%M')" || { echo "$name: commit failed"; return 1; }
+  fi
+  if ! git -C "$dir" pull -q --rebase; then
+    git -C "$dir" rebase --abort 2>/dev/null
+    echo "$name: pull conflict, resolve by hand"; return 1
+  fi
+  git -C "$dir" push -q || { echo "$name: push failed"; return 1; }
+  echo "$name: synced"
+}
+
+status=0 summary=()
+echo "== $(date)" >>"$LOG"
+for dir in "${VAULTS[@]}"; do
+  line="$(sync_vault "$dir" 2>>"$LOG")" || status=1
+  summary+=("$line")
+  echo "$line" | tee -a "$LOG"
+done
+
+if [ $status -eq 0 ]; then title="Vault Sync complete"; else title="Vault Sync failed"; fi
+notify "$title" "$(IFS=$'\n'; echo "${summary[*]}")"
+exit $status
