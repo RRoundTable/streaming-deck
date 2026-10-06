@@ -122,7 +122,8 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 | 캘린더 키가 `미팅 없음`인데 일정이 있음 | 계정이 macOS 캘린더에 없거나 아직 동기화 전 | 캘린더 앱에서 일정이 보이는지 확인. 종일·거절한 일정은 원래 안 나온다 |
 | Start Day·Shutdown에 `VM 연결 안 됨 (sd-vm)` | `Host sd-vm`이 없거나 키 인증이 안 됨, VM 꺼짐 | 8장 1번. `ssh -o BatchMode=yes sd-vm true`가 바로 끝나야 한다 |
 | `VM claude agents 실패` | VM의 로그인 셸 PATH에 `claude`가 없음 | VM에서 `bash -lc 'command -v claude'` |
-| 끝난 세션이 계속 `리뷰`로 나옴 | 아직 정리하지 않음 (완결 표시를 써도 리뷰로 남는다) | 8장 6번: 관리자에게 정리(`claude stop`)를 시킨다 |
+| 끝난 세션이 계속 `리뷰`로 나옴 | 아직 정리하지 않음 | 8장 3번: 리뷰를 마친 세션을 정리한다 |
+| 아무 작업도 안 했는데 `리뷰: …`가 하나 있음 | Remote Control 서버가 시작할 때 만든 빈 세션 | 서버를 `--no-create-session-in-dir`로 띄운다 (8장 2번) |
 | Hammerspoon 설정 오류 | Lua 오류 | Hammerspoon 앱을 열면 콘솔에 오류가 보인다 |
 | 메뉴 막대·HUD 시간이 몇 분 뒤 멈춤 | 모듈 참조가 없어 가비지 컬렉션이 타이머를 멈춤 | `sd.lua`가 `_G.streamingDeck`에 보관 (수정됨) |
 | ⌃⌥ 키를 눌렀는데 예전 동작(단축어 알림 표시 등) | 예전 SD 단축어가 키를 먼저 가져감 | 예전 단축어 삭제 (3장) |
@@ -142,7 +143,7 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 
 ## 8. VM 세션 (adr/007)
 
-구현은 VM의 Claude Code 세션이 맡고, Mac은 상태만 읽어 Deep 선택창(`질문:`·`리뷰:`), Start Day, Shutdown에 보여준다. VM을 쓰지 않으면 이 장을 건너뛴다(Start Day에 `! VM 연결 안 됨`만 보인다).
+구현은 VM의 Claude Code 세션이 맡고, Mac은 VM의 `claude agents --json`만 읽어 Deep 선택창(`질문:`·`리뷰:`), Start Day, Shutdown에 보여준다. VM에 이 저장소의 파일·hook·CLAUDE.md 규칙은 설치하지 않는다. VM을 쓰지 않으면 이 장을 건너뛴다(Start Day에 `! VM 연결 안 됨`만 보인다).
 
 1. **Mac → VM ssh**: 키 인증으로 비밀번호 없이 붙게 하고 `~/.ssh/config`에 별칭을 둔다. `bin/sd`는 `sd-vm`을 쓴다(다른 이름이면 `SD_VM_HOST`, 단 Hammerspoon·Stream Deck은 셸 환경을 물려받지 않으므로 별칭을 맞추는 편이 낫다).
    ```
@@ -150,18 +151,9 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
      HostName <VM 주소>
      User <계정>
    ```
-2. **VM에 Stop hook**: `jq`를 설치하고 `vm/sd-stop-hook`을 `~/.sd/sd-stop-hook`으로 복사해 실행 권한을 준다. `~/.claude/settings.json`에 등록한다.
-   ```json
-   { "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "~/.sd/sd-stop-hook" } ] } ] } }
-   ```
-3. **관리자 세션**: tmux 안에 Remote Control 서버로 띄운다. Desktop 앱·claude.ai/code·휴대폰에서 이 세션에 말을 걸어 작업을 맡긴다. 이름 `manager`는 집계에서 빠진다.
+2. **VM에 Remote Control 서버**: 작업 저장소에서 tmux 안에 띄운다. 세션마다 worktree를 받고 권한 확인으로 멈추지 않는다. 시작할 때 빈 세션을 만들지 않게 한다(만들면 늘 `리뷰`로 잡힌다).
    ```bash
-   tmux new -d -s cc 'claude remote-control --spawn session --name manager --permission-mode bypassPermissions'
+   tmux new -d -s cc 'claude remote-control --spawn worktree --permission-mode bypassPermissions --no-create-session-in-dir --name vm'
    ```
-   관리자는 작업마다 `claude --bg -n "<작업명>" --permission-mode bypassPermissions "<지시>"`로 작업 세션을 띄운다. 작업명이 Deep 선택창에 그대로 나온다.
-4. **마커 규칙**: 관리자가 작업을 띄울 때 지시문 끝에 붙이고, VM 작업 저장소의 CLAUDE.md에도 둔다.
-   > 턴을 끝낼 때 마지막 줄에 `상태: 질문`(내 답이 있어야 계속함), `상태: 리뷰`(끝났고 결과 확인이 필요함), `상태: 완결`(확인할 것 없이 끝남) 중 하나를 쓴다. 메시지의 첫 줄은 한 줄 요약으로 쓴다(선택창 설명줄에 나온다).
-
-   표시가 없으면 리뷰로 나온다. `상태: 완결`도 리뷰로 나오고 설명줄에 `완결 보고`가 붙는다(훑어보고 바로 정리해도 되는 것).
-6. **정리**: 리뷰 블록을 마칠 때 관리자에게 "본 세션 정리해"라고 한다. 관리자가 `claude stop <id>`로 닫아야 할 일 목록에서 빠진다. 정리하지 않은 세션은 다음 날에도 나온다.
-5. **확인**: VM에서 `claude agents --json`에 작업 세션이 보이고, 작업이 끝난 뒤 `~/.sd/sessions/<sessionId>`에 `리뷰<TAB>요약` 같은 줄이 생긴다. Mac에서 `bin/sd agents`가 `🤖 …` 한 줄을 낸다. Claude Code를 올린 뒤에는 이 확인을 다시 한다(`claude agents --json` 형식과 hook 입력에 기댄다).
+3. **쓰기**: Desktop 앱·claude.ai/code·휴대폰에서 이 서버에 새 세션을 띄워 기획을 넘긴다. 세션 이름이 Deep 선택창에 그대로 나온다. 리뷰를 마친 세션은 정리해야 할 일 목록에서 빠진다. 정리하지 않은 세션은 다음 날에도 `리뷰`로 나온다.
+4. **확인**: 세션 하나를 띄운 뒤 VM에서 `claude agents --json`에 그 세션이 `busy`로 보이고, 끝나면 `idle`이 되고, 정리하면 사라지는지 본다. Mac에서 `bin/sd agents`가 `🤖 …` 한 줄을 낸다. Claude Code를 올린 뒤에는 이 확인을 다시 한다(`claude agents --json` 형식에 기댄다).

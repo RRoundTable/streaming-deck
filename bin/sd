@@ -9,7 +9,7 @@
 #   sd tasks            Deep 선택창 후보 "작업<TAB>설명" (Hammerspoon이 표시)
 #   sd agenda           다음 미팅 한 줄 "아이콘 큰 글자 · 윗줄 · 아랫줄" (Stream Deck 캘린더 키가 표시)
 #   sd calendar         Google Calendar 오늘 보기 열기
-#   sd agents [--list]  VM Claude Code 세션 한 줄 "🤖 실행 수 · 질문 N · 리뷰 N" (adr/007). --list는 Deep 선택창 후보
+#   sd agents [--list]  VM Claude Code 세션 한 줄 "🤖 실행 수 · 내 차례 N" (adr/007). --list는 Deep 선택창 후보
 set -euo pipefail
 
 SELF=${0:A}
@@ -28,8 +28,7 @@ AGENDA_APP=${SELF:h:h}/agenda/SDAgenda.app
 AGENDA_TTL=45                       # 이보다 오래된 agenda.tsv는 다시 읽는다 (초). 키가 1분마다 부르므로 매번 새로 읽힌다
 DEEP_MIN=50                         # 다음 미팅까지 이 분 이내면 ⏳ (Deep 50이 안 들어감)
 VM_HOST=${SD_VM_HOST:-sd-vm}        # ~/.ssh/config의 Host 별칭. Hammerspoon·Stream Deck은 셸 환경을 물려받지 않는다
-VM_MANAGER=manager                  # 세션을 띄우는 관리자 세션. 집계에서 뺀다
-AGENTS=$STATE_DIR/agents.tsv        # bin/sd만 쓴다: "실행|질문|리뷰<TAB>기다린 시작 epoch<TAB>이름<TAB>요약", 실패면 "!<TAB>문구"
+AGENTS=$STATE_DIR/agents.tsv        # bin/sd만 쓴다: "실행|질문|리뷰<TAB>시작 epoch<TAB>이름<TAB>status", 실패면 "!<TAB>문구"
 AGENTS_TTL=45                       # 이보다 오래된 agents.tsv는 VM에서 다시 읽는다 (초)
 
 die() { print -u2 "sd: $*"; exit 1; }
@@ -310,70 +309,42 @@ cmd_agenda() {
   print "🗓 $(date +%-d) · $(date +%-m)월 $dow · 미팅 없음"
 }
 
-# VM 세션 목록(claude agents --json)과 Stop hook 마커(~/.sd/sessions/<id>, vm/sd-stop-hook)를
-# ssh 한 번으로 받아 agents.tsv에 합친다. AGENTS_TTL 안이면 다시 읽지 않는다.
-# busy = 실행, idle = 마커(질문|리뷰, 없으면 리뷰), 그 밖의 status(입력 대기 등) = 질문. 관리자는 뺀다.
-# 마커 완결은 에이전트의 보고일 뿐이라 리뷰로 둔다(요약 앞에 "완결 보고"). 목록에서 빠지는 길은 내가 정리(claude stop)하는 것뿐이다.
+# VM 세션 목록(claude agents --json)을 ssh로 받아 agents.tsv에 쓴다. AGENTS_TTL 안이면 다시 읽지 않는다.
+# busy = 실행, idle = 리뷰(끝났거나 말로 묻고 멈춤), 그 밖의 status(입력·권한 대기) = 질문.
+# 완결은 따로 없다: 내가 정리(claude stop)한 세션은 목록에서 사라진다.
 fetch_agents() {
-  local now=$(date +%s) mtime out code
+  local now=$(date +%s) mtime out code rows
   mtime=$(stat -f %m $AGENTS 2>/dev/null) || mtime=0
   (( now - mtime < AGENTS_TTL )) && return 0
   mkdir -p $STATE_DIR
-  out=$(ssh -o BatchMode=yes -o ConnectTimeout=3 $VM_HOST bash -l -s 2>/dev/null <<'EOF'
-claude agents --json || exit 3
-echo '#markers'
-for f in ~/.sd/sessions/*; do
-  [ -f "$f" ] && printf '%s\t%s\t%s\n' "${f##*/}" "$(stat -c %Y "$f")" "$(head -1 "$f")"
-done
-exit 0
-EOF
-  ) && code=0 || code=$?
+  out=$(ssh -o BatchMode=yes -o ConnectTimeout=3 $VM_HOST bash -l -c "'claude agents --json'" 2>/dev/null) && code=0 || code=$?
   if (( code == 255 )); then print "!\tVM 연결 안 됨 ($VM_HOST)" > $AGENTS; return 0
   elif (( code != 0 )); then print "!\tVM claude agents 실패" > $AGENTS; return 0
   fi
-
-  local -A mark since
-  local id t state summary line
-  for line in ${(f)out#*$'\n#markers'}; do
-    IFS=$'\t' read -r id t state summary <<< $line
-    [[ -n $id ]] && mark[$id]=$state$'\t'$summary since[$id]=$t
-  done
-  local rows
-  rows=$(print -r -- ${out%%$'\n#markers'*} | /usr/bin/jq -r --arg manager $VM_MANAGER \
-    '.[] | select(.name != $manager) | [.sessionId, .status, (.startedAt / 1000 | floor), (.name // "(이름 없음)")] | @tsv' 2>/dev/null) \
+  rows=$(print -r -- $out | /usr/bin/jq -r '.[] | [
+      (if .status == "busy" then "실행" elif .status == "idle" then "리뷰" else "질문" end),
+      (.startedAt / 1000 | floor), (.name // "(이름 없음)"), .status] | @tsv' 2>/dev/null) \
     || { print "!\tVM 응답 이상" > $AGENTS; return 0 }
-  local name st
-  {
-    for line in ${(f)rows}; do
-      IFS=$'\t' read -r id st t name <<< $line
-      if [[ $st == busy ]]; then print -r -- "실행"$'\t'$t$'\t'$name$'\t'
-      elif [[ $st == idle ]]; then
-        IFS=$'\t' read -r state summary <<< ${mark[$id]:-리뷰}
-        [[ $state == 완결 ]] && summary="완결 보고${summary:+ · $summary}"
-        [[ $state == 질문 ]] || state=리뷰
-        print -r -- $state$'\t'${since[$id]:-$t}$'\t'$name$'\t'$summary
-      else print -r -- "질문"$'\t'$t$'\t'$name$'\t'"$st 상태"
-      fi
-    done
-  } > $AGENTS.tmp && mv $AGENTS.tmp $AGENTS
+  print -r -- $rows > $AGENTS.tmp && mv $AGENTS.tmp $AGENTS
 }
 
-# Deep 선택창 후보 "질문: 이름<TAB>VM · 요약 · 3h 대기". 질문 먼저, 각각 오래 기다린 순. 실패면 출력 없음.
+# Deep 선택창 후보 "질문: 이름<TAB>VM · 입력 대기 · 시작 3h 전". 질문 먼저, 각각 먼저 시작한 순. 실패면 출력 없음.
 agents_list() {
-  local now=$(date +%s) kind k t name summary wait
+  local now=$(date +%s) kind k t name st ago
   [[ -f $AGENTS ]] || return 0
   for kind in 질문 리뷰; do
-    sort -t$'\t' -k2,2n $AGENTS | while IFS=$'\t' read -r k t name summary; do
+    sort -t$'\t' -k2,2n $AGENTS | while IFS=$'\t' read -r k t name st; do
       [[ $k == $kind ]] || continue
-      wait=$(( (now - t) / 60 ))
-      (( wait < 60 )) && wait=${wait}m || wait=$(( wait / 60 ))h
-      print -r -- "$kind: $name"$'\t'"VM${summary:+ · $summary} · $wait 대기"
+      ago=$(( (now - t) / 60 ))
+      (( ago < 60 )) && ago=${ago}m || ago=$(( ago / 60 ))h
+      [[ $kind == 질문 ]] && st=" · 입력 대기 ($st)" || st=
+      print -r -- "$kind: $name"$'\t'"VM$st · 시작 $ago 전"
     done
   done
 }
 
 # VM 세션 한 줄. 판단은 여기서 하고 표시하는 쪽은 모양만 정한다.
-#   🤖 2 · 질문 1 · 리뷰 3              처리할 세션 있음 (2는 실행 중)
+#   🤖 2 · 내 차례 3                    질문·리뷰 세션 있음 (2는 실행 중)
 #   🤖 2 · 모두 실행 중
 #   🤖 0 · 세션 없음 · 기획을 넘기세요
 #   ! 문구                              VM을 읽지 못함
@@ -382,14 +353,14 @@ cmd_agents() {
   if [[ ${1:-} == --list ]]; then agents_list; return 0; fi
   local first=$(head -1 $AGENTS)
   [[ $first == '!'* ]] && { print -r -- "! ${first#*$'\t'}"; return 0 }
-  local -i run=0 ask=0 review=0
+  local -i run=0 mine=0
   local k rest
   while IFS=$'\t' read -r k rest; do
-    case $k in 실행) run+=1 ;; 질문) ask+=1 ;; 리뷰) review+=1 ;; esac
+    case $k in 실행) run+=1 ;; 질문|리뷰) mine+=1 ;; esac
   done < $AGENTS
-  if (( run + ask + review == 0 )); then print "🤖 0 · 세션 없음 · 기획을 넘기세요"
-  elif (( ask + review == 0 )); then print "🤖 $run · 모두 실행 중"
-  else print "🤖 $run · 질문 $ask · 리뷰 $review"
+  if (( run + mine == 0 )); then print "🤖 0 · 세션 없음 · 기획을 넘기세요"
+  elif (( mine == 0 )); then print "🤖 $run · 모두 실행 중"
+  else print "🤖 $run · 내 차례 $mine"
   fi
 }
 
