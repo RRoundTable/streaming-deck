@@ -34,7 +34,8 @@
 - [ ] `SD Shallow 25`, `SD Interrupt`, `SD Focus 1`~`SD Focus 5`, 인박스 메모
 - [ ] 블록 종료 → 집중도 입력 강제(평가 없이 휴식으로 못 넘어가게)
 - [ ] VM Claude Code 세션 연동 (ADR-007 예정): `bin/sd agents`가 ssh로 VM의 `claude agents --json`을 읽어 실행 중·내 차례 세션 수를 메뉴 막대·HUD·Stream Deck에, 내 차례 세션 이름을 Deep 선택창에 보여준다. 선행: VM에서 Remote Control 서버·`--bg` 세션이 이 목록에 어떻게 나오는지 확인
-- [ ] 회의 직전(`⏳`)·Shutdown 때 실행 중인 VM 세션이 0이면 알림
+- [ ] 회의 직전(`⏳`)·Shutdown 때 실행 중인 VM 세션이 0이면 알림 (PR #1)
+- [ ] Stream Deck VM 키, 선택창에서 고르면 VM 세션 화면 열기 (PR #1)
 
 ## Later — 3~4주차
 

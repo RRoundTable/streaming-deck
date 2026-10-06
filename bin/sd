@@ -9,7 +9,7 @@
 #   sd tasks            Deep 선택창 후보 "작업<TAB>설명" (Hammerspoon이 표시)
 #   sd agenda           다음 미팅 한 줄 "아이콘 큰 글자 · 윗줄 · 아랫줄" (Stream Deck 캘린더 키가 표시)
 #   sd calendar         Google Calendar 오늘 보기 열기
-#   sd agents [--list]  VM Claude Code 세션 한 줄 "🤖 실행 수 · 내 차례 N" (adr/007). --list는 Deep 선택창 후보
+#   sd agents [--list]  VM Claude Code 세션 한 줄 "아이콘 큰 글자 · 윗줄 · 아랫줄" (adr/007, Stream Deck VM 키가 표시). --list는 Deep 선택창 후보
 set -euo pipefail
 
 SELF=${0:A}
@@ -28,8 +28,9 @@ AGENDA_APP=${SELF:h:h}/agenda/SDAgenda.app
 AGENDA_TTL=45                       # 이보다 오래된 agenda.tsv는 다시 읽는다 (초). 키가 1분마다 부르므로 매번 새로 읽힌다
 DEEP_MIN=50                         # 다음 미팅까지 이 분 이내면 ⏳ (Deep 50이 안 들어감)
 VM_HOST=${SD_VM_HOST:-sd-vm}        # ~/.ssh/config의 Host 별칭. Hammerspoon·Stream Deck은 셸 환경을 물려받지 않는다
-AGENTS=$STATE_DIR/agents.tsv        # bin/sd만 쓴다: "실행|질문|리뷰<TAB>시작 epoch<TAB>이름<TAB>status", 실패면 "!<TAB>문구"
+AGENTS=$STATE_DIR/agents.tsv        # bin/sd만 쓴다: "실행|질문|리뷰<TAB>시작 epoch<TAB>이름<TAB>status<TAB>claude.ai 세션 id", 실패면 "!<TAB>문구"
 AGENTS_TTL=45                       # 이보다 오래된 agents.tsv는 VM에서 다시 읽는다 (초)
+MEETING_WARNED=$STATE_DIR/meeting-warned  # 회의 직전 경고를 한 번만: 마지막으로 확인한 회의의 시작 epoch
 
 die() { print -u2 "sd: $*"; exit 1; }
 
@@ -202,6 +203,7 @@ cmd_deep() {  # cmd_deep <분> [완료 조건]
   clear_distractions
   nohup $SELF _guard $(date -v+${minutes}M +%s) $started $kind >/dev/null 2>&1 &!
   local until=$(date -v+${minutes}M +%H:%M)
+  open_agent "$task"
   print -r -- "Deep $minutes 시작 ~$until — $task"
 }
 
@@ -300,6 +302,7 @@ cmd_agenda() {
     if (( start <= now )); then
       print -r -- "🟢 지금 · ~$(date -r $end +%H:%M) · $title"
     elif (( start - now <= DEEP_MIN * 60 )); then
+      nohup $SELF _meeting_warn $start "$title" >/dev/null 2>&1 &!
       print -r -- "⏳ $(( (start - now + 59) / 60 ))m · $(date -r $start +%H:%M) 시작 · $title"
     else
       print -r -- "📅 $(date -r $start +%H:%M) · $(date +%-m/%-d) $dow · $title"
@@ -310,6 +313,7 @@ cmd_agenda() {
 }
 
 # VM 세션 목록(claude agents --json)을 ssh로 받아 agents.tsv에 쓴다. AGENTS_TTL 안이면 다시 읽지 않는다.
+# Remote Control 세션의 claude.ai id(bridgeSessionId)는 같은 ssh에서 ~/.claude/sessions/*.json으로 읽는다. 없으면 빈 칸.
 # busy = 실행, idle = 리뷰(끝났거나 말로 묻고 멈춤), 그 밖의 status(입력·권한 대기) = 질문.
 # 완결은 따로 없다: 내가 정리(claude stop)한 세션은 목록에서 사라진다.
 fetch_agents() {
@@ -318,13 +322,21 @@ fetch_agents() {
   (( now - mtime < AGENTS_TTL )) && return 0
   mkdir -p $STATE_DIR
   # Hammerspoon·Stream Deck이 부르면 PATH에 Homebrew가 없다. ssh ProxyCommand(gcloud IAP 터널 등)가 Homebrew 도구를 쓴다
-  out=$(PATH=$PATH:/opt/homebrew/bin:/usr/local/bin ssh -o BatchMode=yes -o ConnectTimeout=3 $VM_HOST bash -l -c "'claude agents --json'" 2>/dev/null) && code=0 || code=$?
-  if (( code == 255 )); then print "!\tVM 연결 안 됨 ($VM_HOST)" > $AGENTS; return 0
+  out=$(PATH=$PATH:/opt/homebrew/bin:/usr/local/bin ssh -o BatchMode=yes -o ConnectTimeout=3 $VM_HOST bash -l -s 2>/dev/null <<'EOF'
+claude agents --json || exit 3
+echo '#bridge'
+cat ~/.claude/sessions/*.json 2>/dev/null
+exit 0
+EOF
+  ) && code=0 || code=$?
+  if (( code == 255 )); then print "!\tVM 연결 안 됨" > $AGENTS; return 0
   elif (( code != 0 )); then print "!\tVM claude agents 실패" > $AGENTS; return 0
   fi
-  rows=$(print -r -- $out | /usr/bin/jq -r '.[] | [
+  local bridge=${out#*$'\n#bridge'}
+  [[ $bridge == $out ]] && bridge=
+  rows=$(print -r -- ${out%%$'\n#bridge'*} | /usr/bin/jq -r --argjson bridge "$(print -r -- $bridge | /usr/bin/jq -s 'map({(.sessionId): (.bridgeSessionId // "")}) | add // {}' 2>/dev/null || print '{}')" '.[] | [
       (if .status == "busy" then "실행" elif .status == "idle" then "리뷰" else "질문" end),
-      (.startedAt / 1000 | floor), (.name // "(이름 없음)"), .status] | @tsv' 2>/dev/null) \
+      (.startedAt / 1000 | floor), (.name // "(이름 없음)"), .status, ($bridge[.sessionId] // "")] | @tsv' 2>/dev/null) \
     || { print "!\tVM 응답 이상" > $AGENTS; return 0 }
   print -r -- $rows > $AGENTS.tmp && mv $AGENTS.tmp $AGENTS
 }
@@ -334,7 +346,7 @@ agents_list() {
   local now=$(date +%s) kind k t name st ago
   [[ -f $AGENTS ]] || return 0
   for kind in 질문 리뷰; do
-    sort -t$'\t' -k2,2n $AGENTS | while IFS=$'\t' read -r k t name st; do
+    sort -t$'\t' -k2,2n $AGENTS | while IFS=$'\t' read -r k t name st _; do
       [[ $k == $kind ]] || continue
       ago=$(( (now - t) / 60 ))
       (( ago < 60 )) && ago=${ago}m || ago=$(( ago / 60 ))h
@@ -344,25 +356,54 @@ agents_list() {
   done
 }
 
-# VM 세션 한 줄. 판단은 여기서 하고 표시하는 쪽은 모양만 정한다.
-#   🤖 2 · 내 차례 3                    질문·리뷰 세션 있음 (2는 실행 중)
-#   🤖 2 · 모두 실행 중
-#   🤖 0 · 세션 없음 · 기획을 넘기세요
-#   ! 문구                              VM을 읽지 못함
-cmd_agents() {
+# agents.tsv를 세어 AGENTS_ERR(읽기 실패 문구), AGENTS_RUN, AGENTS_MINE(질문 + 리뷰), AGENTS_FIRST(먼저 볼 세션 이름)에 넣는다.
+count_agents() {
   fetch_agents
-  if [[ ${1:-} == --list ]]; then agents_list; return 0; fi
+  AGENTS_ERR= AGENTS_RUN=0 AGENTS_MINE=0 AGENTS_FIRST=
   local first=$(head -1 $AGENTS)
-  [[ $first == '!'* ]] && { print -r -- "! ${first#*$'\t'}"; return 0 }
-  local -i run=0 mine=0
+  [[ $first == '!'* ]] && { AGENTS_ERR=${first#*$'\t'}; return 0 }
   local k rest
   while IFS=$'\t' read -r k rest; do
-    case $k in 실행) run+=1 ;; 질문|리뷰) mine+=1 ;; esac
+    case $k in 실행) (( AGENTS_RUN += 1 )) ;; 질문|리뷰) (( AGENTS_MINE += 1 )) ;; esac
   done < $AGENTS
-  if (( run + mine == 0 )); then print "🤖 0 · 세션 없음 · 기획을 넘기세요"
-  elif (( mine == 0 )); then print "🤖 $run · 모두 실행 중"
-  else print "🤖 $run · 내 차례 $mine"
+  AGENTS_FIRST=$(agents_list | head -1 | cut -f1)
+  AGENTS_FIRST=${AGENTS_FIRST#*: }
+}
+
+# VM 세션 한 줄 "아이콘 큰 글자 · 윗줄 · 아랫줄". 판단은 여기서 하고 표시하는 쪽은 모양만 정한다.
+#   🙋 2 · 내 차례 · 벤치 조사          질문·리뷰 세션 있음 (아랫줄은 먼저 볼 세션)
+#   🏃 3 · 실행 중 · 내 차례 없음
+#   💤 0 · VM 쉬는 중 · 기획 넘기기     실행도 내 차례도 없음
+#   ! 문구                              VM을 읽지 못함
+cmd_agents() {
+  if [[ ${1:-} == --list ]]; then fetch_agents; agents_list; return 0; fi
+  count_agents
+  if [[ -n $AGENTS_ERR ]]; then print -r -- "! $AGENTS_ERR"
+  elif (( AGENTS_MINE )); then print -r -- "🙋 $AGENTS_MINE · 내 차례 · $AGENTS_FIRST"
+  elif (( AGENTS_RUN )); then print "🏃 $AGENTS_RUN · 실행 중 · 내 차례 없음"
+  else print "💤 0 · VM 쉬는 중 · 기획 넘기기"
   fi
+}
+
+# 선택창에서 고른 VM 후보("리뷰: 이름", "질문: 이름")면 그 세션의 claude.ai 화면을 연다. id를 모르면 세션 목록.
+open_agent() {  # open_agent <완료 조건>
+  [[ $1 == (질문|리뷰):\ * ]] || return 0
+  local name=${1#*: } k t n st id
+  [[ -f $AGENTS ]] && while IFS=$'\t' read -r k t n st id; do
+    [[ $n == "$name" && $k == (질문|리뷰) ]] || continue
+    open "https://claude.ai/code${id:+/$id}" || print "⚠️ VM 세션 화면을 열지 못함"
+    return 0
+  done < $AGENTS
+  open "https://claude.ai/code" || print "⚠️ VM 세션 목록을 열지 못함"
+}
+
+# 회의가 DEEP_MIN 안으로 다가왔는데 실행 중인 VM 세션이 없으면 회의마다 한 번 알린다(백그라운드, cmd_agenda가 부른다).
+meeting_warn() {  # meeting_warn <회의 시작 epoch> <제목>
+  [[ $(cat $MEETING_WARNED 2>/dev/null) == $1 ]] && return 0
+  print -r -- $1 > $MEETING_WARNED
+  count_agents
+  [[ -z $AGENTS_ERR ]] && (( AGENTS_RUN == 0 )) || return 0
+  notify "⏳ $(( ($1 - $(date +%s) + 59) / 60 ))분 뒤 $2 — 실행 중인 VM 세션이 없습니다. 기획을 넘기세요"
 }
 
 cmd_shutdown() {
@@ -371,9 +412,9 @@ cmd_shutdown() {
   append_log "- $(date +%H:%M) shutdown"
   open_note
   print "Shutdown 완료 — 회고와 내일 첫 작업을 적으세요"
-  local agents=$(cmd_agents)
-  if [[ $agents == '!'* ]]; then print -r -- "⚠️ VM 확인 실패: ${agents#! }"
-  elif [[ $agents == '🤖 0 '* ]]; then print "⚠️ 밤새 일하는 VM 세션이 없습니다"
+  count_agents
+  if [[ -n $AGENTS_ERR ]]; then print -r -- "⚠️ VM 확인 실패: $AGENTS_ERR"
+  elif (( AGENTS_RUN == 0 )); then print "⚠️ 밤새 일하는 VM 세션이 없습니다"
   fi
 }
 
@@ -389,5 +430,6 @@ case ${1:-} in
   calendar)  cmd_calendar ;;
   agents)    cmd_agents "${2:-}" ;;
   _guard)    shift; cmd__guard "$@" ;;
+  _meeting_warn) shift; meeting_warn "$@" ;;
   *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | timer | tasks | agenda | calendar | agents [--list]" ;;
 esac

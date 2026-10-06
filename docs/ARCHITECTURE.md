@@ -15,6 +15,7 @@ flowchart TD
     HS -->|bin/sd status, timer| MB[메뉴 막대 짧게 + HUD 전체 문구·블록 타이머]
     SDP[Stream Deck 플러그인<br/>streamdeck-plugin/] -->|bin/sd status --short| KEY[Stream Deck 키<br/>남은 시간·MIT 진행]
     SDP -->|bin/sd agenda, calendar| CK[Stream Deck 키<br/>다음 미팅·오늘 날짜]
+    SDP -->|bin/sd agents| VK[Stream Deck 키<br/>VM 내 차례·실행 중]
     B -->|open| AG[캘린더 읽기 앱<br/>agenda/SDAgenda.app]
     AG -->|~/.focus/agenda.tsv| B
     B -->|ssh sd-vm| VM[원격 VM<br/>claude agents --json]
@@ -34,7 +35,7 @@ flowchart TD
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
 | 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다. 블록 중 HUD는 `bin/sd timer`의 끝나는 시각으로 초 단위 타이머를 그린다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
 | Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 키 화면을 그린다. 트리거는 여전히 Hotkey | adr/005-streamdeck-display-plugin |
-| VM 세션 상태 | `bin/sd agents`가 ssh(`Host sd-vm`) 한 번으로 VM의 `claude agents --json`을 읽어 `~/.focus/agents.tsv`에 캐시. Deep 선택창·Start Day·Shutdown이 쓴다 | adr/007-vm-session-status |
+| VM 세션 상태 | `bin/sd agents`가 ssh(`Host sd-vm`) 한 번으로 VM의 `claude agents --json`과 세션별 claude.ai id(`~/.claude/sessions/*.json`의 `bridgeSessionId`)를 읽어 `~/.focus/agents.tsv`에 캐시. Deep 선택창(고르면 그 세션 화면 열기)·Start Day·Shutdown·회의 직전 경고·Stream Deck VM 키가 쓴다 | adr/007-vm-session-status |
 | 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 남은 일정을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key |
 | Stream Deck 캘린더 키 | 같은 플러그인의 두 번째 액션. `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기) | adr/006-streamdeck-calendar-key |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
