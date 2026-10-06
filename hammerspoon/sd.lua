@@ -1,6 +1,7 @@
 -- streaming-deck의 macOS 앱 계층. 로직은 전부 bin/sd에 있고, 여기서는 연결만 한다.
 --   ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0   bin/sd start-day / deep / deep25 / shutdown → 결과(stdout, 실패 시 stderr)를 알림
 --   ⌃⌥2 / ⌃⌥3은 먼저 선택창: bin/sd tasks 후보(MIT leaf 항목)에서 고르거나 새로 입력, Esc는 취소
+--   블록 중(bin/sd timer 출력이 있을 때) ⌃⌥2 / ⌃⌥3은 선택창 대신 bin/sd stop (블록 중단)
 --   bin/sd status       메뉴 막대(" · " 앞부분만) + 화면 오른쪽 아래 HUD(전체 문구)
 --   메뉴 막대를 클릭하면 HUD가 꺼지고 켜진다. 꺼 두어도 블록을 시작하면 다시 켜진다
 --   HUD를 클릭하면(끌지 않고) 접히고 펴진다. 접으면 블록 중에는 링 + MM:SS만, 그 밖에는 " · " 앞부분만
@@ -255,7 +256,9 @@ function M.start(repo)
   M.hotkeys = {}
   for key, cmd in pairs(HOTKEYS) do
     table.insert(M.hotkeys, hs.hotkey.bind(HOTKEY_MODS, key, function()
-      if CHOOSER_TITLES[cmd] then chooseTask(cmd) else run({ cmd }) end
+      if not CHOOSER_TITLES[cmd] then run({ cmd })
+      elseif block then run({ "stop" })
+      else chooseTask(cmd) end
     end))
   end
   ticker = hs.timer.new(1, tick)
