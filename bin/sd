@@ -22,12 +22,13 @@ LOG=$VAULT/Logs/$TODAY.md       # sd만 쓴다. 노트에 ![[Logs/날짜]]로 �
 BREAK_MIN=10                        # 블록 종료 후 ⏰를 보여주는 시간
 HIDDEN_APPS=(Slack Mail)            # 블록 시작 시 숨김
 BLOCKED_APPS=(Discord KakaoTalk)    # 블록 동안 실행 즉시 종료
-AGENDA=$STATE_DIR/agenda.tsv        # 캘린더 읽기 앱만 쓴다: 일정 "시작 epoch<TAB>끝 epoch<TAB>제목", 공휴일 "holiday<TAB>날짜<TAB>이름"
+AGENDA=$STATE_DIR/agenda.tsv        # 캘린더 읽기 앱만 쓴다: 일정 "시작 epoch<TAB>끝 epoch<TAB>제목", 공휴일 "holiday<TAB>날짜<TAB>이름", 종일 일정 "allday<TAB>날짜<TAB>제목"
 AGENDA_APP=${SELF:h:h}/agenda/SDAgenda.app
 AGENDA_TTL=45                       # 이보다 오래된 agenda.tsv는 다시 읽는다 (초). 키가 1분마다 부르므로 매번 새로 읽힌다
 AGENDA_SYNC_WAIT=4                  # sd calendar: 동기화 요청 후 이만큼 기다렸다 읽는다 (초). 동기화는 3초쯤 걸린다
 WORK_START=09:00                    # 출근. 퇴근 공백은 다음 근무일(주말·공휴일이 아닌 날) 이 시각에 끝난다
 OFF_TITLE=퇴근                      # 근무일마다 캘린더에 이 제목의 일정을 둔다. 시작 시각이 퇴근이다
+VACATION_WORD=휴가                  # 제목에 이 글자가 든 종일 일정이 있는 날은 근무일이 아니다
 LONG_MIN=180                        # 이 분 이상 비우면 긴 공백 (자리 비움 키 아랫칸)
 
 die() { print -u2 "sd: $*"; exit 1; }
@@ -276,11 +277,11 @@ cmd_calendar() {
 
 # 자리 비움 (adr/009). 캘린더 일정(식사 포함)과 퇴근 중 지금 이후의 공백을 모아, 이어지거나 겹치는 것은 하나로 합친다(이름은 가장 긴 것).
 # 가까운 공백과 다음 긴 공백(LONG_MIN 이상)을 한 줄로 낸다. 같은 공백이면 하나만. 판단은 여기서 하고 표시하는 쪽은 모양만 정한다.
-#   ⚪ 주간 싱크 · 42m ↦30m | 퇴근 · 3h20m ↦14h   남은 시간 ↦ 비우는 길이
-#   🟠 퇴근 · 40m ↦2d                            가까운 공백이 곧 긴 공백 (금요일, 연휴 전날은 ↦ 길이가 일 단위)
-#   ⚪ 점심 · 지금 ↦25m | 퇴근 · 5h ↦14h          진행 중이면 남은 길이
-#   ! 문구                                       읽지 못함
-# 색: 오래 비울수록 일찍 알린다(away_lead). 🟠 준비 시작, 🔴 지금 넘기기, ⚪ 그 전. 두 공백 중 급한 쪽을 따른다.
+#   🔵 주간 싱크 · 42m ↦30m | 🟣 퇴근 · 3h20m ↦14h   칸마다 색 이름 · 남은 시간 ↦ 비우는 길이
+#   🟠 퇴근 · 40m ↦2d                                가까운 공백이 곧 긴 공백 (금요일, 연휴 전날은 ↦ 길이가 일 단위)
+#   🔵 점심 · 지금 ↦25m | 🟣 퇴근 · 5h ↦14h           진행 중이면 남은 길이
+#   ! 문구                                           읽지 못함
+# 색은 칸마다: 🔵 LONG_MIN 미만, 🟣 이상. 오래 비울수록 일찍(away_lead) 🟠 준비 시작, 🔴 지금 넘기기로 바뀐다.
 cmd_agenda() {
   local now=$(date +%s) mtime
   mtime=$(stat -f %m $AGENDA 2>/dev/null) || mtime=0
@@ -300,7 +301,7 @@ cmd_agenda() {
   local a b c
   while IFS=$'\t' read -r a b c; do
     [[ $a == '!'* ]] && { print -r -- "$a"; return 0 }
-    if [[ $a == holiday ]]; then
+    if [[ $a == holiday || ( $a == allday && $c == *$VACATION_WORD* ) ]]; then
       holidays+=($b)
     elif [[ $a == <-> && $b == <-> ]]; then
       away+=("$a"$'\t'"$b"$'\t'"${${c//|/¦}//·/•}")  # 출력의 구분자(|, ·)와 섞이지 않게
@@ -347,24 +348,25 @@ cmd_agenda() {
     if (( s > now && e - s >= LONG_MIN * 60 )); then long=$line; break; fi
   done
 
-  local level=⚪ prep go out=()
+  local color prep go out=()
   for line in $near $long; do
     IFS=$'\t' read -r s e n <<< $line
+    (( e - s >= LONG_MIN * 60 )) && color=🟣 || color=🔵
     if (( s > now )); then
       read -r prep go <<< $(away_lead $(( e - s )))
-      if (( s - now <= go * 60 )); then level=🔴
-      elif (( s - now <= prep * 60 )) && [[ $level == ⚪ ]]; then level=🟠
+      if (( s - now <= go * 60 )); then color=🔴
+      elif (( s - now <= prep * 60 )); then color=🟠
       fi
-      out+=("$n · $(dur $(( s - now ))) ↦$(dur $(( e - s )))")
+      out+=("$color $n · $(dur $(( s - now ))) ↦$(dur $(( e - s )))")
     else
-      out+=("$n · 지금 ↦$(dur $(( e - now )))")
+      out+=("$color $n · 지금 ↦$(dur $(( e - now )))")
     fi
     [[ $near == $long ]] && break
   done
-  print -r -- "$level ${(j: | :)out}"
+  print -r -- "${(j: | :)out}"
 }
 
-# 근무일: 주말도 공휴일(읽기 앱이 준 holidays)도 아닌 날
+# 근무일: 주말도, 공휴일·휴가(cmd_agenda가 모은 holidays)도 아닌 날
 is_workday() {  # is_workday YYYY-MM-DD
   (( $(date -j -f %F $1 +%u) < 6 )) && (( ! ${holidays[(Ie)$1]} ))
 }

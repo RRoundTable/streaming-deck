@@ -1,6 +1,7 @@
 // 캘린더 읽기 앱 (adr/006, adr/009). macOS 캘린더에서 읽어 파일에 쓴다. 판단은 bin/sd agenda가 한다.
 //   "시작 epoch<TAB>끝 epoch<TAB>제목"   오늘 일정 (이미 끝난 것 포함. 지난 "퇴근" 일정도 bin/sd가 쓴다)
 //   "holiday<TAB>YYYY-MM-DD<TAB>이름"   오늘부터 HOLIDAY_DAYS일 동안의 공휴일 (이름에 "휴일"·"Holiday"가 든 캘린더의 종일 일정)
+//   "allday<TAB>YYYY-MM-DD<TAB>제목"    같은 기간 다른 캘린더의 종일 일정 (휴가인지는 bin/sd가 제목으로 판단)
 //   "! 문구"                            읽지 못함 (권한 없음, 공휴일 캘린더 없음)
 // 읽을 때마다 macOS에 원격(Google 등) 동기화를 요청한다. 동기화는 몇 초 걸리므로 그 결과는 다음에 읽을 때 보인다.
 // [기다릴 초]를 주면 그만큼 기다렸다 읽어서 이번에 바로 보인다(캘린더 키를 눌렀을 때).
@@ -55,18 +56,23 @@ guard !holidayCalendars.isEmpty else {
 }
 let day = DateFormatter()
 day.dateFormat = "yyyy-MM-dd"
-let holidays = store.events(matching: store.predicateForEvents(
-  withStart: today, end: calendar.date(byAdding: .day, value: HOLIDAY_DAYS, to: today)!, calendars: holidayCalendars))
-  .filter { $0.isAllDay }
-  .flatMap { event -> [String] in  // 여러 날짜에 걸친 일정은 날짜마다 한 줄. 종일 일정의 끝은 마지막 날 다음 자정이다
-    var lines: [String] = []
-    var d = calendar.startOfDay(for: event.startDate)
-    while d < event.endDate {
-      lines.append("holiday\t\(day.string(from: d))\t\(event.title ?? "")")
-      d = calendar.date(byAdding: .day, value: 1, to: d)!
+// 앞으로 HOLIDAY_DAYS일의 종일 일정을 "<kind><TAB>날짜<TAB>제목" 줄로. 여러 날짜에 걸친 일정은 날짜마다 한 줄(종일 일정의 끝은 마지막 날 다음 자정)
+func allDayLines(_ kind: String, _ calendars: [EKCalendar]) -> [String] {
+  store.events(matching: store.predicateForEvents(
+    withStart: today, end: calendar.date(byAdding: .day, value: HOLIDAY_DAYS, to: today)!, calendars: calendars))
+    .filter { $0.isAllDay && $0.status != .canceled }
+    .flatMap { event -> [String] in
+      var lines: [String] = []
+      var d = calendar.startOfDay(for: event.startDate)
+      while d < event.endDate {
+        lines.append("\(kind)\t\(day.string(from: d))\t\((event.title ?? "").replacingOccurrences(of: "\t", with: " "))")
+        d = calendar.date(byAdding: .day, value: 1, to: d)!
+      }
+      return lines
     }
-    return lines
-  }
+}
+let holidays = allDayLines("holiday", holidayCalendars)
+let allDays = allDayLines("allday", store.calendars(for: .event).filter { !holidayCalendars.contains($0) })
 let events = store.events(matching: store.predicateForEvents(withStart: today, end: midnight, calendars: nil))
   .filter { !$0.isAllDay && $0.status != .canceled }
   .filter { !($0.attendees ?? []).contains { $0.isCurrentUser && $0.participantStatus == .declined } }
@@ -76,4 +82,4 @@ let events = store.events(matching: store.predicateForEvents(withStart: today, e
       .replacingOccurrences(of: "\t", with: " ")
     return "\(Int(event.startDate.timeIntervalSince1970))\t\(Int(event.endDate.timeIntervalSince1970))\t\(title)"
   }
-write((events + holidays).map { $0 + "\n" }.joined())
+write((events + holidays + allDays).map { $0 + "\n" }.joined())

@@ -4,18 +4,20 @@
 //   ⏰ 블록 종료   → 빨강, "휴식" / 블록 종료
 //   📌 1/6        → 회색, "1" "/6" / MIT
 //   (빈 출력)      → 어두운 회색 "sd" (Start Day 전, Shutdown 후)
-// 자리 비움 키 (`sd agenda`, "색 이름 · 남은 시간 ↦길이 | 이름 · 남은 시간 ↦길이"):
-//   ⚪ 주간 싱크 · 42m ↦30m | 퇴근 · 3h20m ↦14h  → 어두운 회색, 위아래 두 칸 (가까운 공백, 긴 공백)
-//   🟠 퇴근 · 40m ↦2d                           → 주황, 한 칸 (가까운 공백이 곧 긴 공백)
-//   🔴 …                                        → 빨강, 지금 넘기기
+// 자리 비움 키 (`sd agenda`, "색 이름 · 남은 시간 ↦길이 | 색 이름 · 남은 시간 ↦길이"), 칸마다 배경색:
+//   🔵 주간 싱크 · 42m ↦30m | 🟣 퇴근 · 3h20m ↦14h  → 위 파랑(3시간 미만), 아래 보라(3시간 이상)
+//   🟠 퇴근 · 40m ↦2d                              → 주황 한 칸 (가까운 공백이 곧 긴 공백, 준비 시작)
+//   🔴 …                                           → 빨강, 지금 넘기기
 const RED = "#E6474C";
 const GRAY = "#262626";
 const OFF = "#111111";
 const AMBER = "#B86E00";
-const AWAY_BG: Record<string, string> = { "⚪": GRAY, "🟠": AMBER, "🔴": RED };
+const BLUE = "#1A56A8";
+const PURPLE = "#6B3FA0";
+const AWAY_BG: Record<string, string> = { "🔵": BLUE, "🟣": PURPLE, "🟠": AMBER, "🔴": RED };
 const LABEL_EM = 7; // 18px 윗줄에 들어가는 길이 (한글 1, 영문·숫자 0.55)
 
-type Section = { label: string; big: string };
+type Section = { label: string; big: string; bg?: string };
 export type Face = { bg: string; big: string; small?: string; label: string; lower?: Section };
 
 function error(line: string): Face {
@@ -41,24 +43,22 @@ function nameWithLength(name: string, length: string): string {
   return fit(name, LABEL_EM - [...tail].reduce((w, ch) => w + em(ch), 0)) + tail;
 }
 
-// "이름 · 남은 시간 ↦길이" → [이름, 남은 시간, 길이]
-function away(section: string): [string, string, string] | undefined {
-  const m = section.match(/^(.*) · (\S+) ↦(\S+)$/);
-  return m ? [m[1], m[2], m[3]] : undefined;
+// "색 이름 · 남은 시간 ↦길이" → [배경, 이름, 남은 시간, 길이]
+function away(section: string): [string, string, string, string] | undefined {
+  const m = section.match(/^(\S+) (.*) · (\S+) ↦(\S+)$/);
+  return m && AWAY_BG[m[1]] ? [AWAY_BG[m[1]], m[2], m[3], m[4]] : undefined;
 }
 
 export function awayFace(line: string): Face {
-  const [icon, ...rest] = line.split(" ");
-  const bg = AWAY_BG[icon];
-  const sections = rest.join(" ").split(" | ").map(away);
-  if (!bg || sections.some((s) => !s)) return error(line);
-  const [[name, until, length], lower] = sections as [string, string, string][];
+  const sections = line.split(" | ").map(away);
+  if (sections.some((s) => !s)) return error(line);
+  const [[bg, name, until, length], lower] = sections as [string, string, string, string][];
   if (!lower) return { bg, label: fit(name, LABEL_EM), big: until, small: `↦ ${length}` };
   return {
     bg,
     label: nameWithLength(name, length),
     big: until,
-    lower: { label: nameWithLength(lower[0], lower[2]), big: lower[1] },
+    lower: { bg: lower[0], label: nameWithLength(lower[1], lower[3]), big: lower[2] },
   };
 }
 
@@ -90,8 +90,8 @@ export function svg({ bg, big, small, label, lower }: Face): string {
     `<text x="72" y="${y}" ${font} font-size="18" opacity="0.75">${esc(s.label)}</text>
      <text x="72" y="${y + 32}" ${font} font-weight="700" font-size="${s.big.length <= 5 ? 32 : 26}">${esc(s.big)}</text>`;
   const body = lower
-    ? `${section(26, { label, big })}
-       <line x1="16" y1="74" x2="128" y2="74" stroke="#fff" stroke-opacity="0.3" stroke-width="2"/>
+    ? `<rect y="72" width="144" height="72" fill="${lower.bg ?? bg}"/>
+       ${section(26, { label, big })}
        ${section(98, lower)}`
     : `${label ? `<text x="72" y="32" ${font} font-size="18" opacity="0.75">${esc(label)}</text>` : ""}
        ${
