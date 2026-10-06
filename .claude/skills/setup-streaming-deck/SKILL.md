@@ -94,7 +94,6 @@ cat <볼트>/Logs/$(date +%F).md                                   # 로그 줄 
 /bin/ps -axo command | grep "^/bin/zsh .*sd _guard"             # 블록 감시 프로세스
 <REPO>/bin/sd status                                            # 메뉴 막대·HUD에 표시될 문구
 <REPO>/bin/sd agenda                                            # Stream Deck 캘린더 키에 표시될 문구
-<REPO>/bin/sd agents                                            # VM 세션 한 줄 (VM을 쓸 때만, setup.md 8장)
 ```
 
 알림, 달 아이콘, 메뉴 막대, HUD처럼 화면에 보이는 것은 Claude가 볼 수 없다(화면 기록·알림 DB 권한 없음). 사용자에게 물어서 확인한다.
