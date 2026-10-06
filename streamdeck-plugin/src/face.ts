@@ -4,6 +4,7 @@
 //   ⏰ 블록 종료   → 빨강, "휴식" / 블록 종료
 //   📌 1/6        → 회색, "1" "/6" / MIT
 //   (빈 출력)      → 어두운 회색 "sd" (Start Day 전, Shutdown 후)
+// Deep 50·25 키 (같은 출력): 🎯 블록 중이면 빨강 "■ 정지" + 남은 시간, 아니면 회색 "DEEP" + 50/25
 // 자리 비움 키 (`sd agenda`, "색 이름 · 남은 시간 ↦길이 | 색 이름 · 남은 시간 ↦길이"), 칸마다 배경색:
 //   🔵 주간 싱크 · 42m ↦30m | 🟣 퇴근 · 3h20m ↦14h  → 위 파랑(3시간 미만), 아래 보라(3시간 이상)
 //   🟠 퇴근 · 40m ↦2d                              → 주황 한 칸 (가까운 공백이 곧 긴 공백, 준비 시작)
@@ -60,6 +61,11 @@ export function awayFace(line: string): Face {
     big: until,
     lower: { bg: lower[0], label: nameWithLength(lower[1], lower[3]), big: lower[2] },
   };
+}
+
+export function deepFace(status: string, minutes: number): Face {
+  const [icon, ...rest] = status.split(" ");
+  return icon === "🎯" ? { bg: RED, label: "■ 정지", big: rest.join(" ") } : { bg: GRAY, label: "DEEP", big: String(minutes) };
 }
 
 export function face(status: string): Face {

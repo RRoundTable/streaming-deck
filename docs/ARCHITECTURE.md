@@ -7,6 +7,7 @@ macOS 앱 계층은 Hammerspoon 하나다(adr/004). 단축키·메뉴 막대·HU
 ```mermaid
 flowchart TD
     K[⌃⌥1/2/3/0<br/>Stream Deck Hotkey] --> HS[Hammerspoon<br/>hammerspoon/sd.lua]
+    SDP -->|hammerspoon://sd-key?cmd=deep·deep25| HS
     HS -->|start-day, deep, deep25, shutdown| B[bin/sd]
     B --> O[Obsidian 기록 볼트<br/>Daily/ 생성, Logs/ append]
     B --> F[~/.focus/state.json]
@@ -25,13 +26,13 @@ flowchart TD
 | Layer | Choice | ADR |
 |-------|--------|-----|
 | 앱 계층 | Hammerspoon (`hammerspoon/sd.lua`): 단축키, 메뉴 막대, HUD, 알림 | adr/004-hammerspoon-single-app |
-| 트리거 | Hammerspoon 단축키 ⌃⌥1/2/3/0, Stream Deck은 Hotkey 액션으로 같은 키 | adr/004-hammerspoon-single-app |
+| 트리거 | Hammerspoon 단축키 ⌃⌥1/2/3/0. Stream Deck은 Start Day·Shutdown이 Hotkey 액션, Deep 50·25가 플러그인 키(URL 이벤트 `hammerspoon://sd-key`로 단축키와 같은 함수) | adr/004-hammerspoon-single-app, adr/011-streamdeck-deep-keys |
 | 집중 모드 | 단축어 `SD Focus On`/`SD Focus Off` (`bin/sd`가 `shortcuts run`) | adr/004-hammerspoon-single-app |
 | 기록 | Obsidian 기록 볼트 (`~/workspace/personal/record-vault`), 코어 Daily Notes·Templates. 플러그인 없음 | — |
 | 상태 | `~/.focus/state.json` | — |
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
 | 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다. 블록 중 HUD는 `bin/sd timer`의 끝나는 시각으로 초 단위 타이머를 그린다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
-| Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 키 화면을 그린다. 트리거는 여전히 Hotkey | adr/005-streamdeck-display-plugin |
+| Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 남은 시간 키와 Deep 50·25 키(블록 중이면 "■ 정지")를 그린다 | adr/005-streamdeck-display-plugin |
 | 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 일정과 2주 안의 공휴일·종일 일정을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key, adr/009-streamdeck-away-key |
 | Stream Deck 자리 비움 키 | 같은 플러그인의 두 번째 액션(UUID는 캘린더 키 때 것). `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기). 식사·퇴근은 캘린더 일정, 출근 시각만 `bin/sd` 상수 | adr/009-streamdeck-away-key (adr/006 키 표시 대체), adr/010-away-times-from-calendar |
 | 볼트 동기화 | `bin/vault-sync` (bash, git). 기록·업무 볼트를 커밋 → `pull --rebase` → push. 충돌이면 rebase를 되돌리고 알린다. 알림은 `hammerspoon://notify`(dotfiles `hammerspoon/init.lua`), 없으면 osascript. 로그는 `~/Library/Logs/vault-sync.log` | — |
@@ -71,6 +72,6 @@ streaming-deck/
 
 ## Constraints
 
-- 트리거 계층에는 로직을 두지 않는다. Stream Deck으로 옮길 때 다시 만들 것이 없어야 한다. 플러그인이 키 입력을 받는 것은 자리 비움 키뿐이고, 그때도 `bin/sd calendar`를 부르기만 한다.
+- 트리거 계층에는 로직을 두지 않는다. Stream Deck으로 옮길 때 다시 만들 것이 없어야 한다. 플러그인이 키 입력을 받는 것은 자리 비움 키(`bin/sd calendar`를 부르기만 한다)와 Deep 50·25 키(Hammerspoon `sd-key` URL 이벤트를 부르기만 한다. 선택창·정지 판단은 Hammerspoon과 `bin/sd`)뿐이다.
 - 브라우저는 Chrome·Safari·Arc 중 하나 (Firefox는 AppleScript로 URL 조회 불가).
 - 데몬 환경에 `ANTHROPIC_API_KEY`를 두지 않는다.
