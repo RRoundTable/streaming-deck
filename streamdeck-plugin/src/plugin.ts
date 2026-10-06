@@ -1,14 +1,14 @@
-// streaming-deck Stream Deck 플러그인 (ADR-005, ADR-006).
+// streaming-deck Stream Deck 플러그인 (ADR-005, ADR-006, ADR-009).
 // 로직은 bin/sd에 있다. 여기서는 sd 출력 한 줄을 읽어 키 화면을 그리기만 한다.
 //   남은 시간 키: `sd status --short`, 5초마다. 누르면 새로고침
-//   캘린더 키:    `sd agenda`, 1분마다. 누르면 `sd calendar`(Google Calendar 오늘 보기 + 동기화)
+//   자리 비움 키: `sd agenda`, 1분마다. 누르면 `sd calendar`(Google Calendar 오늘 보기 + 동기화)
 import streamDeck, { SingletonAction, type KeyDownEvent, type WillAppearEvent } from "@elgato/streamdeck";
 import { execFile } from "node:child_process";
 import { realpathSync, watch } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { agendaFace, face, svg, type Face } from "./face.js";
+import { awayFace, face, svg, type Face } from "./face.js";
 
 const STATUS_POLL_MS = 5_000; // 분 단위 표시라 충분하다. 매번 다시 그려 전송 누락도 덮는다
 const AGENDA_POLL_MS = 60_000; // 남은 분이 바뀌는 주기. sd가 그때마다 일정도 다시 읽는다
@@ -64,12 +64,13 @@ class SdKey extends SingletonAction {
 }
 
 const status = new SdKey("com.rroundtable.sd.status", ["status", "--short"], face);
-const calendar = new SdKey("com.rroundtable.sd.calendar", ["agenda"], agendaFace, ["calendar"]);
+// UUID는 캘린더 키(adr/006) 때 것을 그대로 써서 이미 놓인 키가 그대로 바뀐다
+const away = new SdKey("com.rroundtable.sd.calendar", ["agenda"], awayFace, ["calendar"]);
 streamDeck.actions.registerAction(status);
-streamDeck.actions.registerAction(calendar);
+streamDeck.actions.registerAction(away);
 
 setInterval(() => void status.render(), STATUS_POLL_MS);
-setInterval(() => void calendar.render(), AGENDA_POLL_MS);
+setInterval(() => void away.render(), AGENDA_POLL_MS);
 
 // 블록 시작·종료·Shutdown은 ~/.focus/state.json을, 캘린더 읽기 앱은 ~/.focus/agenda.tsv를 바꾼다.
 // 바로 반영하되 연속 변경은 한 번으로 묶는다.
@@ -79,7 +80,7 @@ try {
     clearTimeout(pending);
     pending = setTimeout(() => {
       void status.render();
-      void calendar.render();
+      void away.render();
     }, 300);
   });
 } catch (err) {

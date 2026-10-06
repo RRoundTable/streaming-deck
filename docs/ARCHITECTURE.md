@@ -14,7 +14,7 @@ flowchart TD
     B -->|~/.focus/notify| HS
     HS -->|bin/sd status, timer| MB[메뉴 막대 짧게 + HUD 전체 문구·블록 타이머]
     SDP[Stream Deck 플러그인<br/>streamdeck-plugin/] -->|bin/sd status --short| KEY[Stream Deck 키<br/>남은 시간·MIT 진행]
-    SDP -->|bin/sd agenda, calendar| CK[Stream Deck 키<br/>다음 미팅·오늘 날짜]
+    SDP -->|bin/sd agenda, calendar| CK[Stream Deck 키<br/>자리 비움: 가까운 공백·긴 공백]
     B -->|open| AG[캘린더 읽기 앱<br/>agenda/SDAgenda.app]
     AG -->|~/.focus/agenda.tsv| B
     F -.later.-> G[Focus Guard 데몬]
@@ -32,8 +32,8 @@ flowchart TD
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
 | 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다. 블록 중 HUD는 `bin/sd timer`의 끝나는 시각으로 초 단위 타이머를 그린다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
 | Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 키 화면을 그린다. 트리거는 여전히 Hotkey | adr/005-streamdeck-display-plugin |
-| 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 남은 일정을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key |
-| Stream Deck 캘린더 키 | 같은 플러그인의 두 번째 액션. `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기) | adr/006-streamdeck-calendar-key |
+| 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 남은 일정과 2주 안의 공휴일을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key, adr/009-streamdeck-away-key |
+| Stream Deck 자리 비움 키 | 같은 플러그인의 두 번째 액션(UUID는 캘린더 키 때 것). `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기). 식사·퇴근 시각은 `bin/sd` 상수 | adr/009-streamdeck-away-key (adr/006 키 표시 대체) |
 | 볼트 동기화 | `bin/vault-sync` (bash, git). 기록·업무 볼트를 커밋 → `pull --rebase` → push. 충돌이면 rebase를 되돌리고 알린다. 알림은 `hammerspoon://notify`(dotfiles `hammerspoon/init.lua`), 없으면 osascript. 로그는 `~/Library/Logs/vault-sync.log` | — |
 | Focus Guard (Later) | Python + launchd + osascript, `claude -p --model haiku` | — |
 | Testing | `SD_VAULT`·`HOME`을 임시 디렉터리로 두고 `bin/sd` 실행 후 노트·state 확인 | — |
@@ -59,7 +59,7 @@ streaming-deck/
 ## Import Rules
 
 - `state.json`은 `bin/sd`만 쓰고 해석한다. Hammerspoon은 `bin/sd status` 출력과 `~/.focus/notify`만 쓰고 state.json을 직접 읽지 않는다. Stream Deck 플러그인도 `bin/sd status --short` 출력만 읽고, `~/.focus`는 갱신 신호로만 감시한다. Focus Guard는 state.json을 읽기만 한다.
-- `~/.focus/agenda.tsv`는 캘린더 읽기 앱만 쓰고 `bin/sd agenda`만 읽는다. 읽기 앱에는 판단을 두지 않는다(오늘 남은 일정을 그대로 내보낸다). 플러그인과 Hammerspoon은 `bin/sd agenda` 출력만 쓴다.
+- `~/.focus/agenda.tsv`는 캘린더 읽기 앱만 쓰고 `bin/sd agenda`만 읽는다. 읽기 앱에는 판단을 두지 않는다(오늘 남은 일정과 공휴일 날짜를 그대로 내보낸다. 근무일·공백 계산은 `bin/sd`). 플러그인과 Hammerspoon은 `bin/sd agenda` 출력만 쓴다.
 
 ## Key Patterns
 
@@ -71,6 +71,6 @@ streaming-deck/
 
 ## Constraints
 
-- 트리거 계층에는 로직을 두지 않는다. Stream Deck으로 옮길 때 다시 만들 것이 없어야 한다. 플러그인이 키 입력을 받는 것은 캘린더 키뿐이고, 그때도 `bin/sd calendar`를 부르기만 한다.
+- 트리거 계층에는 로직을 두지 않는다. Stream Deck으로 옮길 때 다시 만들 것이 없어야 한다. 플러그인이 키 입력을 받는 것은 자리 비움 키뿐이고, 그때도 `bin/sd calendar`를 부르기만 한다.
 - 브라우저는 Chrome·Safari·Arc 중 하나 (Firefox는 AppleScript로 URL 조회 불가).
 - 데몬 환경에 `ANTHROPIC_API_KEY`를 두지 않는다.
