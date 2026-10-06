@@ -44,6 +44,7 @@
 - [ ] Stream Deck 도착 시 Hotkey 액션으로 연결, 페이지·집중도 폴더 구성
 - [x] Stream Deck 남은 시간 키: 자체 표시 전용 플러그인 `streamdeck-plugin/` (ADR-005, 2026-09-28)
 - [x] Stream Deck 캘린더 키: 다음 미팅·오늘 날짜, 누르면 Google Calendar. macOS 캘린더를 Swift 읽기 앱으로 읽는다 (ADR-006, 2026-10-02)
+- [x] Stream Deck 자리 비움 키: 캘린더 키를 대체. 가까운 공백과 다음 긴 공백(미팅·식사·퇴근·휴일), 오래 비울수록 일찍 색이 바뀐다. 자리를 비우기 전에 Remote Control로 넘길 작업을 정하기 위해서 (ADR-009, 2026-10-06)
 
 ## 미결 사항
 

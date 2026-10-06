@@ -12,8 +12,8 @@
 | ⌃⌥0 | `bin/sd shutdown` | 블록 해제·방해금지 해제 → 로그 → 노트 열기 |
 | | `bin/sd status` | 상태 한 줄 (메뉴 막대·HUD가 표시) |
 | | `bin/sd timer` | 진행 중인 블록의 끝나는 시각·길이 (HUD 타이머가 표시) |
-| | `bin/sd agenda` | 다음 미팅 한 줄 (Stream Deck 캘린더 키가 표시). macOS 캘린더에서 읽는다 |
-| | `bin/sd calendar` | Google Calendar 오늘 보기 열기 (캘린더 키를 누르면 실행) |
+| | `bin/sd agenda` | 다음 자리 비움 한 줄: 가까운 공백과 다음 긴 공백(미팅·식사·퇴근·휴일) (Stream Deck 자리 비움 키가 표시). 일정·공휴일은 macOS 캘린더에서 읽는다 |
+| | `bin/sd calendar` | Google Calendar 오늘 보기 열기 (자리 비움 키를 누르면 실행) |
 | | `bin/vault-sync` | record-vault·round-vault를 커밋 → `pull --rebase` → push, 결과 알림 (Stream Deck: System > Open `~/Applications/Vault Sync.app`) |
 
 - 키, 메뉴 막대(`🎯 32m`), 화면 오른쪽 아래 HUD(전체 문구, 블록 중에는 줄어드는 링 + `MM:SS`. 블록 사이에는 `📌 1/6 · 다음 MIT`로 체크한 MIT 수), 알림은 Hammerspoon(`hammerspoon/sd.lua`)이 맡는다.
