@@ -277,11 +277,11 @@ cmd_calendar() {
 
 # 자리 비움 (adr/009). 캘린더 일정(식사 포함)과 퇴근 중 지금 이후의 공백을 모아, 이어지거나 겹치는 것은 하나로 합친다(이름은 가장 긴 것).
 # 가까운 공백과 다음 긴 공백(LONG_MIN 이상)을 한 줄로 낸다. 같은 공백이면 하나만. 판단은 여기서 하고 표시하는 쪽은 모양만 정한다.
-#   ⚪ 주간 싱크 · 42m ↦30m | 퇴근 · 3h20m ↦14h   남은 시간 ↦ 비우는 길이
-#   🟠 퇴근 · 40m ↦2d                            가까운 공백이 곧 긴 공백 (금요일, 연휴 전날은 ↦ 길이가 일 단위)
-#   ⚪ 점심 · 지금 ↦25m | 퇴근 · 5h ↦14h          진행 중이면 남은 길이
-#   ! 문구                                       읽지 못함
-# 색: 오래 비울수록 일찍 알린다(away_lead). 🟠 준비 시작, 🔴 지금 넘기기, ⚪ 그 전. 두 공백 중 급한 쪽을 따른다.
+#   🔵 주간 싱크 · 42m ↦30m | 🟣 퇴근 · 3h20m ↦14h   칸마다 색 이름 · 남은 시간 ↦ 비우는 길이
+#   🟠 퇴근 · 40m ↦2d                                가까운 공백이 곧 긴 공백 (금요일, 연휴 전날은 ↦ 길이가 일 단위)
+#   🔵 점심 · 지금 ↦25m | 🟣 퇴근 · 5h ↦14h           진행 중이면 남은 길이
+#   ! 문구                                           읽지 못함
+# 색은 칸마다: 🔵 LONG_MIN 미만, 🟣 이상. 오래 비울수록 일찍(away_lead) 🟠 준비 시작, 🔴 지금 넘기기로 바뀐다.
 cmd_agenda() {
   local now=$(date +%s) mtime
   mtime=$(stat -f %m $AGENDA 2>/dev/null) || mtime=0
@@ -348,21 +348,22 @@ cmd_agenda() {
     if (( s > now && e - s >= LONG_MIN * 60 )); then long=$line; break; fi
   done
 
-  local level=⚪ prep go out=()
+  local color prep go out=()
   for line in $near $long; do
     IFS=$'\t' read -r s e n <<< $line
+    (( e - s >= LONG_MIN * 60 )) && color=🟣 || color=🔵
     if (( s > now )); then
       read -r prep go <<< $(away_lead $(( e - s )))
-      if (( s - now <= go * 60 )); then level=🔴
-      elif (( s - now <= prep * 60 )) && [[ $level == ⚪ ]]; then level=🟠
+      if (( s - now <= go * 60 )); then color=🔴
+      elif (( s - now <= prep * 60 )); then color=🟠
       fi
-      out+=("$n · $(dur $(( s - now ))) ↦$(dur $(( e - s )))")
+      out+=("$color $n · $(dur $(( s - now ))) ↦$(dur $(( e - s )))")
     else
-      out+=("$n · 지금 ↦$(dur $(( e - now )))")
+      out+=("$color $n · 지금 ↦$(dur $(( e - now )))")
     fi
     [[ $near == $long ]] && break
   done
-  print -r -- "$level ${(j: | :)out}"
+  print -r -- "${(j: | :)out}"
 }
 
 # 근무일: 주말도, 공휴일·휴가(cmd_agenda가 모은 holidays)도 아닌 날
