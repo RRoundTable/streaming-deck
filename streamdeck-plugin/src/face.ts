@@ -9,13 +9,19 @@
 //   ⏳ 42m · 14:00 시작 · 주간 싱크  → 주황, Deep 50이 안 들어감
 //   📅 14:00 · 10/2 금 · 주간 싱크   → 파랑
 //   🗓 2 · 10월 금 · 미팅 없음       → 어두운 회색
+// VM 키 (`sd agents`, 같은 형식):
+//   🙋 2 · 내 차례 · 벤치 조사        → 보라, 질문·리뷰할 세션 수와 먼저 볼 세션
+//   🏃 3 · 실행 중 · 내 차례 없음     → 초록
+//   💤 0 · VM 쉬는 중 · 기획 넘기기   → 주황, 실행 중인 세션이 없음
 const RED = "#E6474C";
 const GRAY = "#262626";
 const OFF = "#111111";
 const GREEN = "#0F7A5F";
 const AMBER = "#B86E00";
 const BLUE = "#1A56A8";
+const PURPLE = "#5B3FB8";
 const AGENDA_BG: Record<string, string> = { "🟢": GREEN, "⏳": AMBER, "📅": BLUE, "🗓": OFF };
+const AGENTS_BG: Record<string, string> = { "🙋": PURPLE, "🏃": GREEN, "💤": AMBER };
 const TITLE_SIZE = 20;
 const TITLE_EM = 6.5; // 키 너비에 들어가는 제목 길이 (한글 1, 영문·숫자 0.55)
 
@@ -36,13 +42,17 @@ function fit(text: string, em: number): string {
   return text;
 }
 
-export function agendaFace(line: string): Face {
+// "아이콘 큰 글자 · 윗줄 · 아랫줄" 한 줄. 아이콘이 배경색을 정한다.
+function lineFace(line: string, bgs: Record<string, string>): Face {
   const [icon, ...rest] = line.split(" ");
-  const bg = AGENDA_BG[icon];
+  const bg = bgs[icon];
   const [big, label, ...title] = rest.join(" ").split(" · ");
   if (!bg || !big || !label) return error(line);
   return { bg, big, label, small: fit(title.join(" · "), TITLE_EM), smallSize: TITLE_SIZE };
 }
+
+export const agendaFace = (line: string): Face => lineFace(line, AGENDA_BG);
+export const agentsFace = (line: string): Face => lineFace(line, AGENTS_BG);
 
 export function face(status: string): Face {
   const [icon, ...rest] = status.split(" ");
