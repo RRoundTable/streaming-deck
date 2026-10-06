@@ -312,7 +312,8 @@ cmd_agenda() {
 
 # VM 세션 목록(claude agents --json)과 Stop hook 마커(~/.sd/sessions/<id>, vm/sd-stop-hook)를
 # ssh 한 번으로 받아 agents.tsv에 합친다. AGENTS_TTL 안이면 다시 읽지 않는다.
-# busy = 실행, idle = 마커(질문|리뷰|완결, 없으면 리뷰), 그 밖의 status(입력 대기 등) = 질문. 완결과 관리자는 뺀다.
+# busy = 실행, idle = 마커(질문|리뷰, 없으면 리뷰), 그 밖의 status(입력 대기 등) = 질문. 관리자는 뺀다.
+# 마커 완결은 에이전트의 보고일 뿐이라 리뷰로 둔다(요약 앞에 "완결 보고"). 목록에서 빠지는 길은 내가 정리(claude stop)하는 것뿐이다.
 fetch_agents() {
   local now=$(date +%s) mtime out code
   mtime=$(stat -f %m $AGENTS 2>/dev/null) || mtime=0
@@ -348,7 +349,7 @@ EOF
       if [[ $st == busy ]]; then print -r -- "실행"$'\t'$t$'\t'$name$'\t'
       elif [[ $st == idle ]]; then
         IFS=$'\t' read -r state summary <<< ${mark[$id]:-리뷰}
-        [[ $state == 완결 ]] && continue
+        [[ $state == 완결 ]] && summary="완결 보고${summary:+ · $summary}"
         [[ $state == 질문 ]] || state=리뷰
         print -r -- $state$'\t'${since[$id]:-$t}$'\t'$name$'\t'$summary
       else print -r -- "질문"$'\t'$t$'\t'$name$'\t'"$st 상태"
