@@ -82,7 +82,8 @@ ADR-004 이전에 만든 `SD Start Day`, `SD Deep 50`, `SD Shutdown`, `SD Notify
 
 | 버튼 | Elgato 액션 | 값 |
 |---|---|---|
-| Start Day / Deep 50 / Deep 25 / Shutdown | System → Hotkey | ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0 |
+| Start Day / Shutdown | System → Hotkey | ⌃⌥1 / ⌃⌥0 |
+| Deep 50 / Deep 25 | streaming-deck → Deep 50 / Deep 25 (같은 플러그인, adr/011) | 설정 없음. 평소 회색 `DEEP 50`, 블록 중 빨강 `■ 정지` + 남은 시간. 누르면 ⌃⌥2/⌃⌥3과 같다 |
 | 기록 볼트 / round-vault | System → Website (GET request in background 끔) | `obsidian://open?vault=record-vault` / `obsidian://open?vault=round-vault` |
 | 남은 시간 | streaming-deck → 남은 시간 (자체 플러그인, `bin/setup`이 설치) | 설정 없음 |
 | 자리 비움 | streaming-deck → 자리 비움 (같은 플러그인) | 설정 없음 |

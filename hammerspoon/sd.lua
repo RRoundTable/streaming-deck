@@ -2,6 +2,7 @@
 --   ⌃⌥1 / ⌃⌥2 / ⌃⌥3 / ⌃⌥0   bin/sd start-day / deep / deep25 / shutdown → 결과(stdout, 실패 시 stderr)를 알림
 --   ⌃⌥2 / ⌃⌥3은 먼저 선택창: bin/sd tasks 후보(MIT leaf 항목)에서 고르거나 새로 입력, Esc는 취소
 --   블록 중(bin/sd timer 출력이 있을 때) ⌃⌥2 / ⌃⌥3은 선택창 대신 bin/sd stop (블록 중단)
+--   hammerspoon://sd-key?cmd=deep|deep25   단축키와 같은 동작. Stream Deck Deep 키가 부른다 (adr/011)
 --   bin/sd status       메뉴 막대(" · " 앞부분만) + 화면 오른쪽 아래 HUD(전체 문구)
 --   메뉴 막대를 클릭하면 HUD가 꺼지고 켜진다. 꺼 두어도 블록을 시작하면 다시 켜진다
 --   HUD를 클릭하면(끌지 않고) 접히고 펴진다. 접으면 블록 중에는 링 + MM:SS만, 그 밖에는 " · " 앞부분만
@@ -253,14 +254,18 @@ function M.start(repo)
   hs.menuIcon(false)  -- 노치 옆 공간 절약. 설정 다시 읽기: Hammerspoon 앱을 열어 콘솔에서 hs.reload()
   menubar = hs.menubar.new()
   menubar:setClickCallback(function() hudOn = not hudOn; renderHud() end)
+  local function press(cmd)
+    if not CHOOSER_TITLES[cmd] then run({ cmd })
+    elseif block then run({ "stop" })
+    else chooseTask(cmd) end
+  end
   M.hotkeys = {}
   for key, cmd in pairs(HOTKEYS) do
-    table.insert(M.hotkeys, hs.hotkey.bind(HOTKEY_MODS, key, function()
-      if not CHOOSER_TITLES[cmd] then run({ cmd })
-      elseif block then run({ "stop" })
-      else chooseTask(cmd) end
-    end))
+    table.insert(M.hotkeys, hs.hotkey.bind(HOTKEY_MODS, key, function() press(cmd) end))
   end
+  hs.urlevent.bind("sd-key", function(_, params)
+    if CHOOSER_TITLES[params.cmd] then press(params.cmd) else notify("sd-key: 모르는 cmd " .. tostring(params.cmd)) end
+  end)
   ticker = hs.timer.new(1, tick)
   M.ticker = ticker
   M.timer = hs.timer.doEvery(REFRESH_SEC, refresh)
