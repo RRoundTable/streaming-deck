@@ -3,6 +3,7 @@
 #   sd start-day        데일리 노트 생성 → Calendar·Tasks·노트 열기
 #   sd deep [완료 조건]   50분 딥 블록 시작 (인자 없으면 입력창)
 #   sd deep25 [완료 조건] 25분 딥 블록 시작. 나머지는 deep과 같다
+#   sd stop             진행 중인 블록 중단 (블록 중 Deep 키를 다시 누르면 Hammerspoon이 부른다)
 #   sd shutdown         블록 상태 해제 → 데일리 노트 열기
 #   sd status [--short] 현재 상태 한 줄 (Hammerspoon 메뉴 막대·HUD가 표시). --short는 " · " 앞만 (Stream Deck 버튼 제목)
 #   sd timer            진행 중인 블록의 "끝나는 시각(epoch) 전체 길이(초)" (HUD의 초 단위 타이머용)
@@ -392,6 +393,18 @@ dur() {  # dur <초> → 42m, 1h, 3h20m, 2d (하루 이상은 일 단위로 내�
   fi
 }
 
+# 진행 중인 블록을 끝낸다. 진행 분에 더하지 않고 interrupt 줄만 남겨, 하던 작업이 다음 Deep 기본값(default_task)이 된다.
+# _guard는 state.json의 started가 바뀐 것을 보고 스스로 끝난다.
+cmd_stop() {
+  [[ $(field mode) == deep ]] && (( $(date -j -f %FT%T $(field ends) +%s) > $(date +%s) )) \
+    || die "진행 중인 블록 없음"
+  local task=$(field task)
+  write_state day
+  focus Off
+  append_log "- $(date +%H:%M) interrupt — 다음: $task"
+  print -r -- "블록 중단 — 다음: $task"
+}
+
 cmd_shutdown() {
   write_state off
   focus Off
@@ -404,6 +417,7 @@ case ${1:-} in
   start-day) cmd_start_day ;;
   deep)      shift; cmd_deep 50 "${1:-}" ;;
   deep25)    shift; cmd_deep 25 "${1:-}" ;;
+  stop)      cmd_stop ;;
   shutdown)  cmd_shutdown ;;
   status)    if [[ ${2:-} == --short ]]; then cmd_status | sed 's/ · .*//'; else cmd_status; fi ;;
   timer)     cmd_timer ;;
@@ -411,5 +425,5 @@ case ${1:-} in
   agenda)    cmd_agenda ;;
   calendar)  cmd_calendar ;;
   _guard)    shift; cmd__guard "$@" ;;
-  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | shutdown | status [--short] | timer | tasks | agenda | calendar" ;;
+  *)         die "사용법: sd start-day | deep [완료 조건] | deep25 [완료 조건] | stop | shutdown | status [--short] | timer | tasks | agenda | calendar" ;;
 esac

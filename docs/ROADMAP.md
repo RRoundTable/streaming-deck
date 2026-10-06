@@ -32,7 +32,8 @@
 ## Next — 1~2주차 (2026-09-28~)
 
 - [ ] 1주차: Start Day / Deep 50 / Shutdown을 실제 업무에 사용, 안 누르는 동작 제거
-- [ ] `SD Shallow 25`, `SD Interrupt`, `SD Focus 1`~`SD Focus 5`, 인박스 메모
+- [x] 블록 중 Deep 키를 다시 누르면 중단, `interrupt` 기록 (2026-10-06)
+- [ ] `SD Shallow 25`, `SD Focus 1`~`SD Focus 5`, 인박스 메모
 - [ ] 블록 종료 → 집중도 입력 강제(평가 없이 휴식으로 못 넘어가게)
 
 ## Later — 3~4주차
