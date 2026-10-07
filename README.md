@@ -21,6 +21,12 @@
 - 방해금지는 단축어 `SD Focus On`/`SD Focus Off`를 `bin/sd`가 부른다.
 - 기록 볼트: `~/workspace/personal/record-vault`. 데일리 노트는 `Daily/`, 로그는 `Logs/`(노트에 임베드).
 
+## 도구 (`tools/`)
+
+`sd`와 독립된 Stream Deck 도구. 각 폴더의 README에 키와 설치 방법이 있다.
+
+- [polish](tools/polish/README.md): ⌃⌥E로 선택한 텍스트(없으면 입력창 전체)를 자연스러운 업무 영어로 교체 (`claude -p`)
+
 ## 새 Mac에 설치
 
 ```bash
