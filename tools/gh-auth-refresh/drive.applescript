@@ -10,7 +10,7 @@ on isAlive(pid)
 end isAlive
 
 on run argv
-	set jsSource to read POSIX file (item 1 of argv)
+	set jsSource to read POSIX file (item 1 of argv) as «class utf8»
 	set ghPid to item 2 of argv
 	set status to "timeout"
 	set warned to false

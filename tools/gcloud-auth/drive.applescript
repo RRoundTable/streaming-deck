@@ -10,7 +10,7 @@ on isAlive(pid)
 end isAlive
 
 on run argv
-	set jsSource to read POSIX file (item 1 of argv)
+	set jsSource to read POSIX file (item 1 of argv) as «class utf8»
 	set pid to item 2 of argv
 	set status to "timeout"
 	set warned to false
@@ -34,6 +34,7 @@ on run argv
 			end if
 			if (s starts with "external" or s is "login_required") and not warned then
 				set warned to true
+				activate
 				display notification "Aside에서 구글 로그인(비밀번호/2단계)을 끝내면 이어서 진행합니다" with title "gcloud auth"
 			end if
 		end repeat
