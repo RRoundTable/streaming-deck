@@ -1,7 +1,7 @@
 // streaming-deck Stream Deck 플러그인 (ADR-005, ADR-006, ADR-009, ADR-011).
 // 로직은 bin/sd에 있다. 여기서는 sd 출력 한 줄을 읽어 키 화면을 그리기만 한다.
 //   남은 시간 키:      `sd status --short`, 5초마다. 누르면 새로고침
-//   Deep 50·25 키:     같은 출력으로 블록 중이면 "■ 정지". 누르면 Hammerspoon의 ⌃⌥2/⌃⌥3과 같은 동작(선택창 또는 정지)
+//   Deep 50·25 키:     같은 출력으로 블록 중이면 "■ 정지" + 줄어드는 링 + MM:SS(`sd timer`의 끝나는 시각을 1초마다 직접 계산). 누르면 Hammerspoon의 ⌃⌥2/⌃⌥3과 같은 동작(선택창 또는 정지)
 //   자리 비움 키:      `sd agenda`, 1분마다. 누르면 `sd calendar`(Google Calendar 오늘 보기 + 동기화)
 import streamDeck, { SingletonAction, type KeyDownEvent, type WillAppearEvent } from "@elgato/streamdeck";
 import { execFile } from "node:child_process";
@@ -9,9 +9,10 @@ import { realpathSync, watch } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { awayFace, deepFace, face, svg, type Face } from "./face.js";
+import { awayFace, deepFace, face, svg, type Block, type Face } from "./face.js";
 
 const STATUS_POLL_MS = 5_000; // 분 단위 표시라 충분하다. 매번 다시 그려 전송 누락도 덮는다
+const TICK_MS = 1_000; // 블록 중 링·초 단위 표시
 const AGENDA_POLL_MS = 60_000; // 남은 분이 바뀌는 주기. sd가 그때마다 일정도 다시 읽는다
 const FOCUS_DIR = join(homedir(), ".focus");
 
@@ -79,14 +80,25 @@ class SdKey extends SingletonAction {
   }
 }
 
+// 블록 중이면 sd timer의 끝나는 시각을 기억해 두고 1초마다 직접 계산해 그린다 (sd를 매초 부르지 않는다)
+let line = "";
+let block: Block | undefined;
 const status = new SdKey("com.rroundtable.sd.status", ["status", "--short"], face);
-const deep50 = new SdKey("com.rroundtable.sd.deep50", status.args, (l) => deepFace(l, 50), () => hammerspoon("deep"));
-const deep25 = new SdKey("com.rroundtable.sd.deep25", status.args, (l) => deepFace(l, 25), () => hammerspoon("deep25"));
+const deep50 = new SdKey("com.rroundtable.sd.deep50", status.args, (l) => deepFace(l, 50, block), () => hammerspoon("deep"));
+const deep25 = new SdKey("com.rroundtable.sd.deep25", status.args, (l) => deepFace(l, 25, block), () => hammerspoon("deep25"));
 const statusKeys = [status, deep50, deep25];
+const deepKeys = [deep50, deep25];
 async function renderStatusKeys(): Promise<void> {
   if (statusKeys.every((k) => k.actions.length === 0)) return;
-  const line = await sd(status.args);
+  line = await sd(status.args);
+  const [ends, total] = line.startsWith("🎯") ? (await sd(["timer"])).split(" ").map(Number) : [];
+  block = ends && total ? { ends, total } : undefined;
   await Promise.all(statusKeys.map((k) => k.draw(line)));
+}
+function tickDeepKeys(): void {
+  if (!block) return;
+  if (block.ends > Date.now() / 1000) void Promise.all(deepKeys.map((k) => k.draw(line)));
+  else void renderStatusKeys(); // 끝나는 순간 휴식 표시로 바로 넘어간다
 }
 // UUID는 캘린더 키(adr/006) 때 것을 그대로 써서 이미 놓인 키가 그대로 바뀐다
 const away = new SdKey("com.rroundtable.sd.calendar", ["agenda"], awayFace, () => sd(["calendar"]));
@@ -94,6 +106,7 @@ statusKeys.forEach((k) => streamDeck.actions.registerAction(k));
 streamDeck.actions.registerAction(away);
 
 setInterval(() => void renderStatusKeys(), STATUS_POLL_MS);
+setInterval(tickDeepKeys, TICK_MS);
 setInterval(() => void away.render(), AGENDA_POLL_MS);
 
 // 블록 시작·종료·Shutdown은 ~/.focus/state.json을, 캘린더 읽기 앱은 ~/.focus/agenda.tsv를 바꾼다.

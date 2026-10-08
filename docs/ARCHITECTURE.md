@@ -32,7 +32,7 @@ flowchart TD
 | 상태 | `~/.focus/state.json` | — |
 | 스크립트 | `bin/sd` (zsh). 모든 로직 | — |
 | 표시 | `bin/sd status` 한 줄을 Hammerspoon이 메뉴 막대(짧게)와 HUD(전체 문구)로 보여준다. 블록 중 HUD는 `bin/sd timer`의 끝나는 시각으로 초 단위 타이머를 그린다 | adr/003-hammerspoon-hud, adr/004 (adr/001 SwiftBar 대체) |
-| Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 남은 시간 키와 Deep 50·25 키(블록 중이면 "■ 정지")를 그린다 | adr/005-streamdeck-display-plugin |
+| Stream Deck 표시 | 자체 표시 전용 플러그인(`streamdeck-plugin/`, 공식 SDK). `bin/sd status --short`를 5초마다·`~/.focus` 변경 시 읽어 남은 시간 키와 Deep 50·25 키(블록 중이면 "■ 정지" + 줄어드는 링 + MM:SS)를 그린다. 블록 중에는 `bin/sd timer`의 끝나는 시각을 한 번 읽고 1초마다 플러그인이 직접 계산해 Deep 키만 다시 그린다 | adr/005-streamdeck-display-plugin |
 | 캘린더 읽기 | Swift 앱 번들 `agenda/SDAgenda.app` (EventKit). macOS 캘린더에 동기화된 오늘 일정과 2주 안의 공휴일·종일 일정을 `~/.focus/agenda.tsv`에 쓰기만 한다. 판단은 `bin/sd agenda` | adr/006-streamdeck-calendar-key, adr/009-streamdeck-away-key |
 | Stream Deck 자리 비움 키 | 같은 플러그인의 두 번째 액션(UUID는 캘린더 키 때 것). `bin/sd agenda` 한 줄을 1분마다 그리고, 누르면 `bin/sd calendar`(Google Calendar 오늘 보기). 식사·퇴근은 캘린더 일정, 출근 시각만 `bin/sd` 상수 | adr/009-streamdeck-away-key (adr/006 키 표시 대체), adr/010-away-times-from-calendar |
 | 볼트 동기화 | `bin/vault-sync` (bash, git). 기록·업무 볼트를 커밋 → `pull --rebase` → push. 충돌이면 rebase를 되돌리고 알린다. 알림은 `hammerspoon://notify`(dotfiles `hammerspoon/init.lua`), 없으면 osascript. 로그는 `~/Library/Logs/vault-sync.log` | — |
