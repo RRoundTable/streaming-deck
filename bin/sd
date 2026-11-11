@@ -26,7 +26,8 @@ BLOCKED_APPS=(Discord KakaoTalk)    # 블록 동안 실행 즉시 종료
 AGENDA=$STATE_DIR/agenda.tsv        # 캘린더 읽기 앱만 쓴다: 일정 "시작 epoch<TAB>끝 epoch<TAB>제목", 공휴일 "holiday<TAB>날짜<TAB>이름", 종일 일정 "allday<TAB>날짜<TAB>제목"
 AGENDA_APP=${SELF:h:h}/agenda/SDAgenda.app
 AGENDA_TTL=45                       # 이보다 오래된 agenda.tsv는 다시 읽는다 (초). 키가 1분마다 부르므로 매번 새로 읽힌다
-AGENDA_SYNC_WAIT=4                  # sd calendar: 동기화 요청 후 이만큼 기다렸다 읽는다 (초). 동기화는 3초쯤 걸린다
+AGENDA_HANG=120                      # 읽기 앱이 이보다 오래 떠 있거나 멈춰 있으면 죽인 뒤 다시 띄운다 (초). 보통 5초 안에 끝난다
+AGENDA_SYNC_WAIT=4                 # sd calendar: 동기화 요청 후 이만큼 기다렸다 읽는다 (초). 동기화는 3초쯤 걸린다
 WORK_START=09:00                    # 출근. 퇴근 공백은 다음 근무일(주말·공휴일이 아닌 날) 이 시각에 끝난다
 OFF_TITLE=퇴근                      # 근무일마다 캘린더에 이 제목의 일정을 둔다. 시작 시각이 퇴근이다
 VACATION_WORD=휴가                  # 제목에 이 글자가 든 종일 일정이 있는 날은 근무일이 아니다
@@ -264,10 +265,28 @@ cmd_timer() {
   return 0
 }
 
+# ps etime([[dd-]hh:]mm:ss)을 초로
+etime_secs() {
+  local t=$1 d=0 s=0 x
+  [[ $t == *-* ]] && { d=${t%%-*}; t=${t#*-} }
+  for x in ${(s.:.)t}; s=$(( s * 60 + 10#$x ))
+  print $(( d * 86400 + s ))
+}
+
 # 캘린더 읽기 앱 실행. 이미 떠 있으면(권한 창 대기, 동기화 대기) 다시 띄우지 않는다: open이 응답을 기다리며 멈춘다.
+# 다만 멈췄거나(T) AGENDA_HANG초 넘게 떠 있는 것은 죽은 것으로 보고 정리한다. 안 그러면 영영 다시 안 떠서 agenda.tsv가 낡는다.
 run_agenda_app() {  # run_agenda_app [기다릴 초]
   [[ -x $AGENDA_APP/Contents/MacOS/sd-agenda ]] || return 1
-  pgrep -qf "^$AGENDA_APP/Contents/MacOS/sd-agenda " || open -g $AGENDA_APP --args $AGENDA "$@"
+  local pat="^$AGENDA_APP/Contents/MacOS/sd-agenda " pid st et
+  for pid in $(pgrep -f $pat); do
+    read -r st et <<< $(ps -o stat=,etime= -p $pid)
+    [[ -n $st ]] || continue
+    if [[ $st == T* ]] || (( $(etime_secs $et) > AGENDA_HANG )); then
+      kill -9 $pid
+    fi
+  done
+  sleep 0.2
+  pgrep -qf $pat || open -g $AGENDA_APP --args $AGENDA "$@"
 }
 
 # 기다리지 않는다. 읽기 앱이 동기화를 요청하고 AGENDA_SYNC_WAIT초 뒤 agenda.tsv를 쓰면, ~/.focus를 감시하는 쪽이 다시 그린다.
