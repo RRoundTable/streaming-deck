@@ -26,6 +26,7 @@
 `sd`와 독립된 Stream Deck 도구. 각 폴더의 README에 키와 설치 방법이 있다.
 
 - [polish](tools/polish/README.md): ⌃⌥E로 선택한 텍스트(없으면 입력창 전체)를 자연스러운 업무 영어로 교체 (`claude -p`)
+- [claude-task](tools/claude-task/README.md): Claude 데스크톱 앱의 예약 작업(예: daily-scrum)을 버튼으로 지금 실행 (`claude -p`)
 
 ## 새 Mac에 설치
 
