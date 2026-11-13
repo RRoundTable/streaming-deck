@@ -1,7 +1,7 @@
 #!/bin/bash
 # 사용: run.sh <작업 이름>
 # Claude 데스크톱 앱의 예약 작업 프롬프트(~/.claude/scheduled-tasks/<이름>/SKILL.md)를 claude -p로 지금 실행한다.
-# 결과는 ~/Library/Logs/claude-task/에 남기고, 끝나면 알림을 띄우고 결과 파일을 연다.
+# 결과는 ~/Library/Logs/claude-task/에 남기고, 끝나면 알림을 띄운다.
 set -uo pipefail
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
@@ -39,5 +39,4 @@ if [ "$rc" -eq 0 ]; then
 else
   notify "실패했습니다 (종료 코드 $rc)"
 fi
-open -t "$out"
 exit "$rc"
